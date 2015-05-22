@@ -1,12 +1,10 @@
-USE [bodb_licensee]
+SET QUOTED_IDENTIFIER ON 
 GO
-/****** Object:  StoredProcedure [dbo].[DBA_Lrf_FunctionProduct]    Script Date: 05/04/2015 15:07:49 ******/
-SET ANSI_NULLS ON
+SET ANSI_NULLS ON 
 GO
-SET QUOTED_IDENTIFIER ON
-GO
+ 
 
-ALTER   PROCEDURE [dbo].[DBA_Lrf_FunctionProduct]
+CREATE   PROCEDURE [dbo].[DBA_Lrf_FunctionProduct]
 (
 	@ProductCode VARCHAR(100) = ''
 )
@@ -20,6 +18,7 @@ Revisions:
 	- 20150320@Jim: add more funtion permission for 'Active Customer Summary' report
 	- 20150421@Jim: add more function Gold Deluxe
 	- 20150421@Jim: correct function product for Void Bridge
+	- 20150518@Jim: add more function for Void Bridge
 Param's Explanation:
 		
 	
@@ -301,10 +300,32 @@ BEGIN
 									,65 -- Gold Deluxe Winloss
 									)
 		END	
-		
+	IF @ProductCode = 'VG' -- Voidbridge aka  Vegas games
+		BEGIN 
+			INSERT INTO @tblFunctions (ProductId, FunctionId,TypeID)
+			SELECT	12 AS ProductId -- VG
+					,FunctionID  
+					,1 AS TypeId	 -- Lrf Function
+			FROM dbo.Functions WITH (NOLOCK)
+			WHERE FunctionId    IN (
+									 3  -- REPORTS
+									,66 -- Vegas games Winloss
+									)
+		END	
+			
 	SELECT DISTINCT ProductId, FunctionId,TypeID
 	FROM @tblFunctions ORDER BY ProductId,FunctionId  ASC
 		/*
 			EXEC DBA_FunctionProduct
 		*/
 END
+
+GO
+
+SET QUOTED_IDENTIFIER OFF 
+GO
+SET ANSI_NULLS ON 
+GO
+
+
+GO 
