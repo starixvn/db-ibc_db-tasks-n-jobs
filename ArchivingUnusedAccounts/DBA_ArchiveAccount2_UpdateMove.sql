@@ -8,7 +8,7 @@ AS
 	Created by: []
 	Date: []
 	Task: Archive unused Account in Stage 2 
-	DB: DBTXN/BODB02 
+	DB: DBTXN/CustDB
 	
 	Revisions:
 		- 20091224@Jamie: Separate 3rd CustSetting 
@@ -33,7 +33,7 @@ AS
 		- 20130121@Johnson: change linked server from DB05 to DBARCCUST
 		- 20130808@Elodie: Splitting DBTXN into DBCUST (Call Acc_ExecRep_Cust_01 instead of Acc_ExecRep_01, call bettrans by link database)
 		- 20140208@Thien: Revise the field list of custinfo_old table 
-
+		- 20150525@Elodie: Add HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe field
 	Note: Review the SP again once executing as maybe new fields were added to customer or custinfo table.
 */
 SET NOCOUNT ON
@@ -140,27 +140,29 @@ BEGIN
 END 
 
 insert into DBARCCUST.bodb_Customer.dbo.custinfo_old(
-	   [ArchiveDate],
-	  username, custid, currency, roleid, srecommend, mrecommend, recommend, dangercust, autosuspend, reject, credit, closed, 
-                      MatchLimit, VirtualMultiplier, maxpermatch, maxpermatch2, maxpermatch3, maxpermatch5, maxpermatch8, maxpermatch10, maxpermatch11, 
-                      maxpermatch12, maxpermatch99, [Enabled], danger, maxpermatch151, maxpermatch201, DisableHorseRacing, DisableFinancial, DisableCasino, 
-                      SyncCasino, danger2, danger3, DisableOutright, DisableOpenTote, maxpermatch151_OT, DisableBingo, DisableNumber, SyncBingo, 
-                      MaxPerMatch161, MaxPerMatch99MP, MaxPerBall161, MaxPerMatch151_AU, MaxPerMatch152_UK, MaxPerMatch152_AU, MaxPerMatch153_AU, 
-                      Disable151_AU, Disable152_UK, Disable152_AU, Disable153_AU, MaxtransferP2P, IsAutoResetP2P, DisableP2P, DisableFunP2P, DisableLiveCasino, 
-                      SyncLiveCasino, DisableVirtualSports, HideVirtualSports, maxpermatch180, Abnormal, DoubleCommLosing, isAutoResetLiveCasino, 
-                      MaxWinLiveCasino, maxpermatch182, DisableCasinoBonus, maxpermatch184, DisableHRFixedOdds, maxpermatch154, autosuspend2, 
-                      maxpermatch183, maxpermatch185  
+		[ArchiveDate],
+		username, custid, currency, roleid, srecommend, mrecommend, recommend, dangercust, autosuspend, reject, credit, closed, 
+		MatchLimit, VirtualMultiplier, maxpermatch, maxpermatch2, maxpermatch3, maxpermatch5, maxpermatch8, maxpermatch10, maxpermatch11, 
+		maxpermatch12, maxpermatch99, Enabled, danger, maxpermatch151, maxpermatch201, DisableHorseRacing, DisableFinancial, DisableCasino, 
+		SyncCasino, danger2, danger3, DisableOutright, DisableOpenTote, maxpermatch151_OT, MaxPerMatch99MP, DisableBingo, DisableNumber, maxpermatch161, SyncBingo, 
+		MaxPerBall161, MaxPerMatch151_AU, MaxPerMatch152_UK, MaxPerMatch152_AU, MaxPerMatch153_AU, 
+		Disable151_AU, Disable152_UK, Disable152_AU, Disable153_AU, MaxTransferP2P, IsAutoResetP2P, DisableP2P, DisableFunP2P, DisableLiveCasino, 
+		SyncLiveCasino, maxpermatch180, DisableVirtualSports, HideVirtualSports, Abnormal, isAutoResetLiveCasino, 
+		MaxWinLiveCasino, DoubleCommLosing, maxpermatch186, maxpermatch181, maxpermatch182, DisableCasinoBonus, maxpermatch184, 
+		DisableHRFixedOdds, maxpermatch154, autosuspend2, maxpermatch183, maxpermatch185, 
+		HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe
 )
 select	@Now, 
-	   username, custid, currency, roleid, srecommend, mrecommend, recommend, dangercust, autosuspend, reject, credit, closed, 
-                      MatchLimit, VirtualMultiplier, maxpermatch, maxpermatch2, maxpermatch3, maxpermatch5, maxpermatch8, maxpermatch10, maxpermatch11, 
-                      maxpermatch12, maxpermatch99, [Enabled], danger, maxpermatch151, maxpermatch201, DisableHorseRacing, DisableFinancial, DisableCasino, 
-                      SyncCasino, danger2, danger3, DisableOutright, DisableOpenTote, maxpermatch151_OT, DisableBingo, DisableNumber, SyncBingo, 
-                      MaxPerMatch161, MaxPerMatch99MP, MaxPerBall161, MaxPerMatch151_AU, MaxPerMatch152_UK, MaxPerMatch152_AU, MaxPerMatch153_AU, 
-                      Disable151_AU, Disable152_UK, Disable152_AU, Disable153_AU, MaxtransferP2P, IsAutoResetP2P, DisableP2P, DisableFunP2P, DisableLiveCasino, 
-                      SyncLiveCasino, DisableVirtualSports, HideVirtualSports, maxpermatch180, Abnormal, DoubleCommLosing, isAutoResetLiveCasino, 
-                      MaxWinLiveCasino, maxpermatch182, DisableCasinoBonus, maxpermatch184, DisableHRFixedOdds, maxpermatch154, autosuspend2, 
-                      maxpermatch183, maxpermatch185     
+		username, custid, currency, roleid, srecommend, mrecommend, recommend, dangercust, autosuspend, reject, credit, closed, 
+		MatchLimit, VirtualMultiplier, maxpermatch, maxpermatch2, maxpermatch3, maxpermatch5, maxpermatch8, maxpermatch10, maxpermatch11, 
+		maxpermatch12, maxpermatch99, Enabled, danger, maxpermatch151, maxpermatch201, DisableHorseRacing, DisableFinancial, DisableCasino, 
+		SyncCasino, danger2, danger3, DisableOutright, DisableOpenTote, maxpermatch151_OT, MaxPerMatch99MP, DisableBingo, DisableNumber, maxpermatch161, SyncBingo, 
+		MaxPerBall161, MaxPerMatch151_AU, MaxPerMatch152_UK, MaxPerMatch152_AU, MaxPerMatch153_AU, 
+		Disable151_AU, Disable152_UK, Disable152_AU, Disable153_AU, MaxTransferP2P, IsAutoResetP2P, DisableP2P, DisableFunP2P, DisableLiveCasino, 
+		SyncLiveCasino, maxpermatch180, DisableVirtualSports, HideVirtualSports, Abnormal, isAutoResetLiveCasino, 
+		MaxWinLiveCasino, DoubleCommLosing, maxpermatch186, maxpermatch181, maxpermatch182, DisableCasinoBonus, maxpermatch184, 
+		DisableHRFixedOdds, maxpermatch154, autosuspend2, maxpermatch183, maxpermatch185, 
+		HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe  			     
 from	custinfo (nolock) where custid IN (select custid from #Member with (nolock))
 IF @@Error<>0
 BEGIN

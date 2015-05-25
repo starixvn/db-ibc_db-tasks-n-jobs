@@ -12,7 +12,8 @@ AS
 	Revision:
 		- 20131230@Elodie: Update credit = 0 when account is disabled, check correct server name 
 		- 201406180@Elodie: Remove setting of Keno
-		
+		- 20150514@Elodie: Apply CustVirtualRate table
+
 	Param's Explanation:
 		@Type: 0-Stage 1 (enabled = 0); 1-Stage 2: 
  
@@ -31,9 +32,24 @@ BEGIN
 				WHERE	recommend = @AgentID AND ([enabled] = 1 OR closed = 0) 
 				IF @@ROWCOUNT < 10000
 					BREAK
-			END 			
+			END 
 		END 
 		
+		IF EXISTS (SELECT 1 FROM sys.tables WHERE name IN ('CustVirtualRate'))
+		BEGIN
+			WHILE 1=1
+			BEGIN
+				DELETE TOP(10000) 
+				FROM dbo.CustVirtualRate WITH(ROWLOCK,UPDLOCK)	
+				WHERE custid IN (SELECT custid 
+								 FROM custinfo WITH(NOLOCK) 
+								 WHERE roleid = 1 AND recommend = @AgentID
+								)
+				IF @@ROWCOUNT < 10000
+					BREAK
+			END
+		END
+
 		IF EXISTS (	
 			SELECT COUNT(1) FROM sys.tables 
 			WHERE Name IN('CustSetting','CustSetting3rd')
@@ -86,34 +102,37 @@ BEGIN
 					BREAK
 			END				
 		END		
-		IF EXISTS (SELECT 1 FROM sys.tables WHERE name IN ('CustSettingGame'))
-		BEGIN
-			WHILE 1=1
+
+		IF EXISTS ( SELECT COUNT(1) FROM sys.tables 
+					WHERE Name IN ( 'CustSettingGame','CustGameType')
+					HAVING COUNT(1) = 2 
+			 )
+		BEGIN			
+			WHILE(1=1)
 			BEGIN
-				DELETE TOP(10000) 
-				FROM dbo.CustSettingGame WITH(ROWLOCK,UPDLOCK)	
-				WHERE custid IN (SELECT custid 
-								 FROM custinfo WITH(NOLOCK) 
-								 WHERE roleid = 1 AND recommend = @AgentID
-								)
-				IF @@ROWCOUNT < 10000
+				DELETE TOP(10000) dbo.[CustSettingGame] WITH (UPDLOCK,ROWLOCK)
+				WHERE	custid IN (SELECT custid FROM Custinfo WITH (NOLOCK) 
+									WHERE roleid = 1 
+										AND recommend = @AgentID
+										)
+				IF @@ROWCOUNT < 10000 
 					BREAK
-			END
-		END
-		IF EXISTS (SELECT 1 FROM sys.tables WHERE name IN ('CustGameType'))
-		BEGIN
-			WHILE 1=1
+			END			
+			
+			WHILE(1=1)
 			BEGIN
-				DELETE TOP(10000) 
-				FROM dbo.CustGameType WITH(ROWLOCK,UPDLOCK)	
-				WHERE custid IN (SELECT custid 
-								 FROM custinfo WITH(NOLOCK) 
-								 WHERE roleid = 1 AND recommend = @AgentID
-								)
-				IF @@ROWCOUNT < 10000
+				DELETE TOP(10000) dbo.[CustGameType] WITH (UPDLOCK,ROWLOCK)
+				WHERE	custid IN (SELECT custid FROM Custinfo WITH (NOLOCK) 
+										WHERE roleid = 1 
+											AND recommend = @AgentID
+											)
+				IF @@ROWCOUNT < 10000 
 					BREAK
-			END
-		END
+			END				
+		END		
+
+		
+		
 	END 
 	ELSE IF @Type = 1
 	BEGIN

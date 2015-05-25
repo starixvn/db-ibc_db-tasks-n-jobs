@@ -31,6 +31,7 @@ AS
 		- 20130121@Johnson: change linked server DB05 to DBARCCUST
 		- 20131108@Elodie: Splitting bodb02 into CustDB (Insert BalanceCredit, BalanceDebit by DBA_ArchiveAccount2_Rollback_Balance SP)
 		- 20140403@Kathy: Insert data to columns: maxpermatch181,maxpermatch182,maxpermatch183,maxpermatch184,maxpermatch185 of bodb_Customer.dbo.custInfo_old
+		- 20150525@Elodie: Add CustGameType, CustVirtualRate
 	NOTE: 
 	--Review the SP again once executing as maybe new fields were added to customer or custinfo table
 	--Generate and Run custsetting data manually, by using Local 204 Db or ask the backup DB from Joe
@@ -185,6 +186,7 @@ BEGIN
 		  ,maxpermatch183
 		  ,maxpermatch184
 		  ,maxpermatch185
+		  ,HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe 
           )
 			
 			
@@ -213,6 +215,7 @@ BEGIN
 		  ,maxpermatch183
 		  ,maxpermatch184
 		  ,maxpermatch185
+		  ,HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe 
 	from	DBARCCUST.bodb_Customer.dbo.custinfo_old with(nolock)
 	where	custid IN (	select	custid from #Member WITH (NOLOCK) 
 						where	custid between @minCustID + @Step*@index and (@minCustID - 1) + @Step*(@index + 1)	
@@ -423,6 +426,20 @@ BEGIN
 		Select 	CustID, Bettype, Sporttype, apositiontaking, mpositiontaking, spositiontaking, playerdiscount, discount, adiscount, sdiscount, autopositiontaking, isautopositiontaking, autompositiontaking, isautompositiontaking
 		FROM DBARCCUST.bodb_Customer.dbo.CustSettingGame_Old  WITH (NOLOCK)
 		where	custid IN (	select	custid from #Member WITH (NOLOCK) 
+						where	custid between @minCustID + @Step*@index and (@minCustID - 1) + @Step*(@index + 1)	
+					)
+	
+	INSERT INTO CustGameType (CustID, GameTypeID, StakeLevelList, MaxPerGameType, MinBet, MaxBet, IsDisabled)
+	SELECT CustID, GameTypeID, StakeLevelList, MaxPerGameType, MinBet, MaxBet, IsDisabled
+	FROM DBARCCUST.bodb_Customer.dbo.CustGameType_Old WITH (NOLOCK)
+	WHERE custid IN (	select	custid from #Member WITH (NOLOCK) 
+						where	custid between @minCustID + @Step*@index and (@minCustID - 1) + @Step*(@index + 1)	
+					)
+
+	INSERT INTO CustVirtualRate (custid, sporttype, bettype, isLive, virtualMultiplier)
+	SELECT custid, sporttype, bettype, isLive, virtualMultiplier
+	FROM DBARCCUST.bodb_Customer.dbo.CustVirtualRate_Old WITH (NOLOCK)
+	WHERE custid IN (	select	custid from #Member WITH (NOLOCK) 
 						where	custid between @minCustID + @Step*@index and (@minCustID - 1) + @Step*(@index + 1)	
 					)
 

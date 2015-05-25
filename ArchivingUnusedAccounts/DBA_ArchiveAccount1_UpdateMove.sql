@@ -21,6 +21,7 @@ AS
 		- 20130121@Johnson: change linked server DB05 to DBARCCUST
 		- 20131108@Elodie: Splitting bodb02 into CustDB (Call Acc_ExecRep_Cust_01 instead of Acc_ExecRep_01)
 		- 20140618@Elodie: archive data for Keno
+		- 20150514@Elodie: archive data for CustVirtualRate
 */
     
 SET NOCOUNT ON
@@ -247,6 +248,12 @@ WHERE custid IN (SELECT custid FROM custinfo WITH(NOLOCK) WHERE recommend = @Age
 INSERT INTO DBARCCUST.bodb_Customer.dbo.CustGameType_Old(CustID, GameTypeID, StakeLevelList, MaxPerGameType, MinBet, MaxBet, IsDisabled)
 SELECT CustID, GameTypeID, StakeLevelList, MaxPerGameType, MinBet, MaxBet, IsDisabled
 FROM [dbo].CustGameType WITH(NOLOCK)
+WHERE custid IN (SELECT custid FROM custinfo WITH(NOLOCK) WHERE recommend = @AgentID AND roleid = 1)
+
+--- copy DBTRANS.BODB02.dbo.CustVirtualRate data to DB05.bodb_Customer.dbo.CustVirtualRate_Old
+INSERT INTO DBARCCUST.bodb_Customer.dbo.CustVirtualRate_Old(custid, sporttype, bettype, isLive, virtualMultiplier)
+SELECT custid, sporttype, bettype, isLive, virtualMultiplier
+FROM [dbo].CustVirtualRate WITH(NOLOCK)
 WHERE custid IN (SELECT custid FROM custinfo WITH(NOLOCK) WHERE recommend = @AgentID AND roleid = 1)
 
 Exec Acc_ExecRep_Cust_01 @AgentID = @AgentID, @Type = 0 

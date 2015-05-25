@@ -1,5 +1,4 @@
-﻿
-ALTER PROCEDURE [dbo].[DBA_ArchiveAccount2_ClearBalance]
+﻿ALTER PROCEDURE [dbo].[DBA_ArchiveAccount2_ClearBalance]
 	@AccName varchar(50),	
 	@UserID int = 360418,
 	@ErrMsg nvarchar(200) = '' OUTPUT,
@@ -8,13 +7,15 @@ AS
 /*Description: Clear Balance
 Create date: 
 Original SP: 
-DB: DBTRANS.bodb02
+DB: DBTXN/bodb02
 Revisions:    
 	- 20100511@Henry: insert data to column statusID
 	- 20101021@Henry: Record execution time
 	- 20110513@Henry: Apply new arrange of bettype
 	- 20111031@Lukas: Update member's balance
 	- 20120412@Sophia: Revise Update member's balance
+	- 20131108@Elodie: Splitting bodb02 into CustDB (call CustInfo, Exchange by link database)
+	
 Note:
 --Pre-check needed:
 	--+Closed status
@@ -45,7 +46,7 @@ Declare @refno bigint, @grefno int, @Now datetime, @Enabled bit
 
 
 SELECT @roleid = roleid, @AgentID = custid, @Enabled = Enabled
-FROM custinfo (nolock)
+FROM CustDB.dbo.custinfo (nolock)
 WHERE username = @AccName
 
 if isnull(@AgentID,0) = 0 or @roleid <> 2 or @Enabled = 1
@@ -86,11 +87,11 @@ BEGIN
 		   membername, agentname, mastername, supername)
 	SELECT c.custid, c.recommend, c.mrecommend, c.srecommend, c.currency,e.actualrate, e.currency,
 			c.username, ag.username, mag.username, sag.username
-	FROM custinfo c (nolock)
-		inner join custinfo ag (nolock) on c.recommend = ag.custid
-		inner join custinfo mag (nolock) on c.mrecommend = mag.custid
-		inner join custinfo sag (nolock) on c.srecommend = sag.custid
-		inner join exchange e  (nolock) on c.currency = e.exchangeid 
+	FROM CustDB.dbo.custinfo c (nolock)
+		INNER JOIN CustDB.dbo.custinfo ag (nolock) on c.recommend = ag.custid
+		INNER JOIN CustDB.dbo.custinfo mag (nolock) on c.mrecommend = mag.custid
+		INNER JOIN CustDB.dbo.custinfo sag (nolock) on c.srecommend = sag.custid
+		inner join CustDB.dbo.exchange e  (nolock) on c.currency = e.exchangeid 
 	WHERE  c.recommend = @AgentID AND c.roleid = 1
 	
 END	
@@ -238,8 +239,6 @@ EXEC DBLOG.bodb_CustomerLog.dbo.WriteLog_UserLog_RunSP
 	@ActionID = 1502,
 	@TrackingValue = @LogSPData,
 	@duration = @duration
-
-
 
 GO
 GRANT VIEW DEFINITION ON [dbo].[DBA_ArchiveAccount2_ClearBalance] TO [vnTeam]
