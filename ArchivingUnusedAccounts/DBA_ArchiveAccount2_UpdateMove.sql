@@ -1,4 +1,4 @@
-﻿ALTER PROCEDURE [dbo].[DBA_ArchiveAccount2_UpdateMove]
+﻿ALTER PROCEDURE [dbo].[DBA_ArchiveAccount2_UpdateMove] 'dsdsd'
 	@AccName varchar(50),	
 	@UserID int = 360418,
 	@ErrMsg nvarchar(200) = '' OUTPUT,
@@ -8,7 +8,7 @@ AS
 	Created by: []
 	Date: []
 	Task: Archive unused Account in Stage 2 
-	DB: DBTXN/CustDB
+	DB: DBCUST/CustDB
 	
 	Revisions:
 		- 20091224@Jamie: Separate 3rd CustSetting 
@@ -34,6 +34,10 @@ AS
 		- 20130808@Elodie: Splitting DBTXN into DBCUST (Call Acc_ExecRep_Cust_01 instead of Acc_ExecRep_01, call bettrans by link database)
 		- 20140208@Thien: Revise the field list of custinfo_old table 
 		- 20150525@Elodie: Add HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe field
+		- 20150619@Daniel: 
+		  + Separate custDB to new server DBCUST [Redmine:#36216]  
+		  + No more allow ins/upd data directly via Linked-server
+		  
 	Note: Review the SP again once executing as maybe new fields were added to customer or custinfo table.
 */
 SET NOCOUNT ON
@@ -93,7 +97,7 @@ Update #Member set transCount = b.transCount
 from #Member
 	inner join (
 		Select custid, count(*) as transCount
-		From bodb02.dbo.bettrans with (NOLOCK)
+		From DBTXN.bodb02.dbo.bettrans with (NOLOCK)
 		group by custid
 		) b on #Member.custid = b.custid	
 
@@ -112,64 +116,13 @@ print @AccName +':'+ 'Check members TransCOUNT done:' + convert(varchar(50), get
 --PERFORM MOVING MEMBERS
 --=============================
 
-select @Now = current_timestamp
+EXEC DBARCCUST.bodb_customer.dbo.DBA_ArchiveAccount2_CustomerInsert 
+    @AgentID = @AgentID,
+    @ErrCode = @ErrCode,
+    @ErrMsg = @ErrMsg
+    
+IF(@Error <> 0) RETURN
 
---Copy members'info to bodb_Customer before delete
-insert into DBARCCUST.bodb_Customer.dbo.customer_old(
-	   [custid],[firstname],[lastname],[address] ,[postal],[city]
-      ,[state] ,[country]  ,[phone]   ,[mobilephone] ,[fax]
-      ,[email] ,[birthday] ,[refcode1],[refcode2],[remark]
-      ,[creatdate],[creator],[username],[currency],[userpwd]
-      ,[lastlogged],[pwdexpiry],[roleid],[mrecommend],[recommend]
-      ,[ugroup],[logincount],[on_sessionid],[site],[iplogin]
-      ,[important],[srecommend],[username2]
-)
-select [custid],[firstname],[lastname],[address] ,[postal],[city]
-      ,[state] ,[country]  ,[phone]   ,[mobilephone] ,[fax]
-      ,[email] ,[birthday] ,[refcode1],[refcode2],[remark]
-      ,[creatdate],[creator],[username],[currency],[userpwd]
-      ,[lastlogged],[pwdexpiry],[roleid],[mrecommend],[recommend]
-      ,[ugroup],[logincount],[on_sessionid],[site],[iplogin]
-      ,[important],[srecommend],[username2]
-from	customer (nolock) where custid IN (select custid from #Member with (nolock))
-IF @@Error<>0
-BEGIN
-	Select	@ErrMsg = 'Failed INSERT from CUSTOMER table to CUSTOMER_OLD table', 
-			@ErrCode = 102
-	return
-END 
-
-insert into DBARCCUST.bodb_Customer.dbo.custinfo_old(
-		[ArchiveDate],
-		username, custid, currency, roleid, srecommend, mrecommend, recommend, dangercust, autosuspend, reject, credit, closed, 
-		MatchLimit, VirtualMultiplier, maxpermatch, maxpermatch2, maxpermatch3, maxpermatch5, maxpermatch8, maxpermatch10, maxpermatch11, 
-		maxpermatch12, maxpermatch99, Enabled, danger, maxpermatch151, maxpermatch201, DisableHorseRacing, DisableFinancial, DisableCasino, 
-		SyncCasino, danger2, danger3, DisableOutright, DisableOpenTote, maxpermatch151_OT, MaxPerMatch99MP, DisableBingo, DisableNumber, maxpermatch161, SyncBingo, 
-		MaxPerBall161, MaxPerMatch151_AU, MaxPerMatch152_UK, MaxPerMatch152_AU, MaxPerMatch153_AU, 
-		Disable151_AU, Disable152_UK, Disable152_AU, Disable153_AU, MaxTransferP2P, IsAutoResetP2P, DisableP2P, DisableFunP2P, DisableLiveCasino, 
-		SyncLiveCasino, maxpermatch180, DisableVirtualSports, HideVirtualSports, Abnormal, isAutoResetLiveCasino, 
-		MaxWinLiveCasino, DoubleCommLosing, maxpermatch186, maxpermatch181, maxpermatch182, DisableCasinoBonus, maxpermatch184, 
-		DisableHRFixedOdds, maxpermatch154, autosuspend2, maxpermatch183, maxpermatch185, 
-		HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe
-)
-select	@Now, 
-		username, custid, currency, roleid, srecommend, mrecommend, recommend, dangercust, autosuspend, reject, credit, closed, 
-		MatchLimit, VirtualMultiplier, maxpermatch, maxpermatch2, maxpermatch3, maxpermatch5, maxpermatch8, maxpermatch10, maxpermatch11, 
-		maxpermatch12, maxpermatch99, Enabled, danger, maxpermatch151, maxpermatch201, DisableHorseRacing, DisableFinancial, DisableCasino, 
-		SyncCasino, danger2, danger3, DisableOutright, DisableOpenTote, maxpermatch151_OT, MaxPerMatch99MP, DisableBingo, DisableNumber, maxpermatch161, SyncBingo, 
-		MaxPerBall161, MaxPerMatch151_AU, MaxPerMatch152_UK, MaxPerMatch152_AU, MaxPerMatch153_AU, 
-		Disable151_AU, Disable152_UK, Disable152_AU, Disable153_AU, MaxTransferP2P, IsAutoResetP2P, DisableP2P, DisableFunP2P, DisableLiveCasino, 
-		SyncLiveCasino, maxpermatch180, DisableVirtualSports, HideVirtualSports, Abnormal, isAutoResetLiveCasino, 
-		MaxWinLiveCasino, DoubleCommLosing, maxpermatch186, maxpermatch181, maxpermatch182, DisableCasinoBonus, maxpermatch184, 
-		DisableHRFixedOdds, maxpermatch154, autosuspend2, maxpermatch183, maxpermatch185, 
-		HideKeno, maxpermatch203, DisableEsports, HideGoldDeluxe, DisableGoldDeluxe  			     
-from	custinfo (nolock) where custid IN (select custid from #Member with (nolock))
-IF @@Error<>0
-BEGIN
-	Select	@ErrMsg = 'Failed INSERT from CUSTINFO table to CUSTINFO_OLD table', 
-			@ErrCode = 103
-	return
-END 
 Exec Acc_ExecRep_Cust_01 @AgentID = @AgentID, @Type = 1 
 
 print @AccName +':'+ 'Move members done:' + convert(varchar(50), getdate(), 113)	

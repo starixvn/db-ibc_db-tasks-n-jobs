@@ -8,7 +8,7 @@ AS
 	Created by: Theo
 	Date:	2009-08-13
 	Task: Rollback in STAGE 2 
-	DB: DBTXN/BODB02
+	DB: DBCUST/custDB
 	Revisions:
 		- 20091229@Jamie: Edit Rollback together with Custsetting and Custsetting3rd
 		- 20100204@Jamie: Remove positiontakingallowday, positiontakingallowtime1,positiontakingallowtime2
@@ -32,6 +32,7 @@ AS
 		- 20131108@Elodie: Splitting bodb02 into CustDB (Insert BalanceCredit, BalanceDebit by DBA_ArchiveAccount2_Rollback_Balance SP)
 		- 20140403@Kathy: Insert data to columns: maxpermatch181,maxpermatch182,maxpermatch183,maxpermatch184,maxpermatch185 of bodb_Customer.dbo.custInfo_old
 		- 20150525@Elodie: Add CustGameType, CustVirtualRate
+		- 20150622@Daniel: Separated custDB to server DBCUST
 	NOTE: 
 	--Review the SP again once executing as maybe new fields were added to customer or custinfo table
 	--Generate and Run custsetting data manually, by using Local 204 Db or ask the backup DB from Joe
@@ -140,7 +141,7 @@ SELECT	@Step = 1000
 --Copy back the customer and custinfo
 WHILE (@minCustID + @Step*@index <= @maxCustID )
 BEGIN
-	EXEC bodb02.dbo.DBA_ArchiveAccount2_Rollback_Balance @minCustID = @minCustID, @Step = @Step, @index = @index, @AgentID = @AgentID, @roleid = @roleid
+	EXEC DBTXN.bodb02.dbo.DBA_ArchiveAccount2_Rollback_Balance @minCustID = @minCustID, @Step = @Step, @index = @index, @AgentID = @AgentID, @roleid = @roleid
 
 	SET IDENTITY_INSERT customer ON
 		insert into customer (
