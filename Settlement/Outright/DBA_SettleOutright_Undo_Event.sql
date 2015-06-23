@@ -1,4 +1,11 @@
-﻿ALTER PROCEDURE [dbo].[DBA_SettleOutright_Undo_Event]
+USE [bodb02]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_SettleOutright_Undo_Event]    Script Date: 06/23/2015 01:54:48 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[DBA_SettleOutright_Undo_Event]
 	@matchid int,
 	@ErrCode int = 0 OUTPUT,
 	@ErrMsg nvarchar(200) = '' OUTPUT
@@ -11,6 +18,7 @@ DB: DBPRO/BODB02
 Original: 
 
 Revisions:
+    20150623@Daniel: Restrict ins/upd permission of link server
 		
 Param's Explanation:
 */
@@ -28,7 +36,11 @@ DECLARE @Remark VARCHAR(500), @ActionID INT
 DECLARE @LogData NVARCHAR(300)
 SELECT @ActionID = 140
 
-INSERT INTO DBTXN.bodb02.dbo.TempVariableNumber (KeyID, KeyValue) VALUES (2, @matchid)
+EXEC DBTXN.bodb02.dbo.NAP_UpdateTempVariableNumber
+	@MatchId = @matchid	
+	,@ActionId = 1
+	,@KeyId = 2
+	
 IF (@@Error = 0)
 	BEGIN TRY
 		EXEC DBLOG.bodb_CustomerLog.dbo.WriteLog_UserLog_Settle_Checking 
@@ -54,8 +66,11 @@ UPDATE outright  with (updlock,rowlock)
 SET oddsstatus = 'running', status = NULL 
 WHERE orid = @matchid
 
-DELETE FROM DBTXN.bodb02.dbo.TempVariableNumber WITH (ROWLOCK,UPDLOCK)
-WHERE KeyID = 2 AND KeyValue = @matchid
+EXEC DBTXN.bodb02.dbo.NAP_UpdateTempVariableNumber
+	@MatchId = @matchid	
+	,@ActionId = 0
+	,@KeyId = 2
+
 IF (@@Error = 0)
 BEGIN
 	BEGIN TRY
@@ -112,7 +127,3 @@ BEGIN CATCH
 		@Remark = @Remark
 END CATCH
 
-GO
-GRANT EXECUTE ON [dbo].[DBA_SettleOutright_Undo_Event] TO [vnteam] AS [dbo]
-GO
-GRANT VIEW DEFINITION ON [dbo].[DBA_SettleOutright_Undo_Event] TO [vnteam] AS [dbo]

@@ -1,4 +1,4 @@
-CREATE PROCEDURE [dbo].[DBA_ArchiveAccount2_CustomerInsert] 1244
+ALTER PROCEDURE [dbo].[DBA_ArchiveAccount2_CustomerInsert]
 	@AgentID INT,	
 	@ErrMsg nvarchar(200) = '' OUTPUT,
 	@ErrCode int = 0 OUTPUT
@@ -95,11 +95,3 @@ BEGIN
 END 
 
 DROP TABLE #Member
-
-
-GO
-GRANT EXECUTE ON [dbo].[DBA_ArchiveAccount2_CustomerInsert] TO [bodbAdminNet] AS [dbo]
-GO
-GRANT EXECUTE ON [dbo].[DBA_ArchiveAccount2_CustomerInsert] TO [vnteam] AS [dbo]
-GO
-GRANT VIEW DEFINITION ON [dbo].[DBA_ArchiveAccount2_CustomerInsert] TO [vnteam] AS [dbo]

@@ -1,6 +1,11 @@
-﻿set ANSI_NULLS ON
-set QUOTED_IDENTIFIER ON
-go
+USE [CustDB]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_Lrf_ChangeLicenseeName]    Script Date: 06/22/2015 23:00:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/****** Object:  Stored Procedure dbo.DBA_Lrf_ChangeLicenseeName    Script Date: 12/5/2013 10:51:28 AM ******/
 
 
 ALTER  PROCEDURE [dbo].[DBA_Lrf_ChangeLicenseeName]
@@ -13,19 +18,23 @@ AS
 /*
 	Create by : 20130307@Jim
 	Task : Athena - Change licensee/ site name preparing for official launch
-	DB: DBTXN.bodb02
+	DB: DBCUST/custDB
 	Param's Explanation: 
 			*@OldLicenseeName :string, Licensee whose need to rename
 			*NewLicenseeName: string,new licensee name 
 	Revision:
 		-20130819@Jim: fix bug missing change LicenseeName in table bodb_licensee.dbo.Users
+		-20131118@winnie: move sp to CustDB, add bodb02.dbo.
+		-20150623@DanielC: Migrate custDB to new server DBCUST #36216
 */	
+	
+
 IF NOT EXISTS (SELECT 1 FROM DBLIC.bodb_licensee.dbo.Licensees WITH (NOLOCK) WHERE LicenseeName=@OldLicenseeName)
 	BEGIN 
 		SELECT @ErrCode = 101, @ErrMsg = 'Invalid Licensee, please check again!'
 		RETURN
 	END 
-ELSE	
+ELSE
 BEGIN
 CREATE TABLE #tblCust (CustID INT, username VARCHAR(100),username2 VARCHAR(100),roleid INT)
 
@@ -41,15 +50,15 @@ CREATE TABLE #tblCust (CustID INT, username VARCHAR(100),username2 VARCHAR(100),
 			SELECT @ErrCode = 103, @ErrMsg = 'The New Site name have been already exist,please check again!'
 			RETURN
 		END	
-	IF NOT EXISTS (SELECT 1 FROM DBDW.bodb_Account.dbo.tbl_site WITH (NOLOCK) WHERE site=@NewLicenseeName
-				   UNION ALL
+	IF NOT EXISTS (--SELECT 1 FROM DBDW.bodb_Account.dbo.tbl_site WITH (NOLOCK) WHERE site=@NewLicenseeName
+				   --UNION ALL
 				   SELECT 1 FROM DBDW2.bodb_Account.dbo.tbl_site WITH (NOLOCK) WHERE site=@NewLicenseeName		
 					)	
 		BEGIN
 			
-			UPDATE DBDW.bodb_Account.dbo.tbl_site WITH (rowlock,updlock)
-			SET Site=@NewLicenseeName
-			WHERE Site=@OldLicenseeName
+			--UPDATE DBDW.bodb_Account.dbo.tbl_site WITH (rowlock,updlock)
+			--SET Site=@NewLicenseeName
+			--WHERE Site=@OldLicenseeName
 			
 			UPDATE DBDW2.bodb_Account.dbo.tbl_site WITH (rowlock,updlock)
 			SET Site=@NewLicenseeName
@@ -86,7 +95,7 @@ CREATE TABLE #tblCust (CustID INT, username VARCHAR(100),username2 VARCHAR(100),
 			RETURN
 		END	
 
--- step 2: change username,username2 from bettrans,bettrans14,Custinfo,Customer,LicenseeCustinfo ,Dep_CustSuper
+-- step 2: change username,username2 from Custinfo,Customer,LicenseeCustinfo ,Dep_CustSuper
 	
 	INSERT INTO #tblCust
 	SELECT 	custid
@@ -95,18 +104,11 @@ CREATE TABLE #tblCust (CustID INT, username VARCHAR(100),username2 VARCHAR(100),
 			,roleid 
 	FROM dbo.Customer WITH (NOLOCK)
 	WHERE  srecommend in (SELECT custid FROM dbo.Dep_CustSuper WITH (NOLOCK) WHERE site=@OldLicenseeName)
-	--- bettrans
-	UPDATE dbo.bettrans WITH (rowlock,updlock)
-	SET username=s.username
-	FROM dbo.bettrans d
-	INNER JOIN #tblCust  s
-	ON s.custid=d.custid 
-	--- bettrans14
-	UPDATE dbo.bettrans14 WITH (rowlock,updlock)
-	SET username=s.username
-	FROM dbo.bettrans14 d
-	INNER JOIN #tblCust  s
-	ON s.custid=d.custid 
+
+     EXEC DBTXN.bodb02.dbo.DBA_Lrf_ChangeLicenseeName_Bets 
+	   @OldLicenseeName = @OldLicenseeName,
+	   @NewLicenseeName = @NewLicenseeName
+		
 	---- Custinfo -----
 	UPDATE dbo.custinfo WITH (rowlock,updlock)
 	SET username=s.username
@@ -151,7 +153,5 @@ CREATE TABLE #tblCust (CustID INT, username VARCHAR(100),username2 VARCHAR(100),
 	--------------------------------------------------------------------------------------------------------------------------------------------
 	DROP TABLE #tblCust
 	--------------------------------------------------------------------------------------------------------------------------------------------
-END
 
-GO
-GRANT VIEW DEFINITION ON [dbo].[DBA_Lrf_ChangeLicenseeName] TO [vnteam] 
+END

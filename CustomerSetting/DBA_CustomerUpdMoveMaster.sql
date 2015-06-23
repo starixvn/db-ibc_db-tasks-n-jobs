@@ -1,4 +1,12 @@
-ï»¿ALTER PROCEDURE [dbo].[DBA_CustomerUpdMoveMaster]
+USE [CustDB]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_CustomerUpdMoveMaster]    Script Date: 06/22/2015 22:49:58 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/****** Object:  Stored Procedure dbo.DBA_CustomerUpdMoveMaster    Script Date: 12/23/2013 4:27:31 PM ******/
+ALTER PROCEDURE [dbo].[DBA_CustomerUpdMoveMaster]
 	@supername	VARCHAR(40),
 	@mastername VARCHAR(40),
 	@userid		INT,
@@ -11,7 +19,7 @@ REMEMBER TO DEPLOY DBA_CustomerUpdMoveMaster_ExecRep_06 FIRST
 
 Created: Thien @ 2009-12-08
 Task : Move a master to another super
-DB: DBTRANS.bodb02
+DB: DBCUST/custDB
 Original:
 
 Revisions:
@@ -30,13 +38,15 @@ Revisions:
 	- 20100109@Lewin: Change SP format data
 	- 20091219@Kiwi: Move custsetting & custoverride to the separated tables (CustSetting3rd & CustOverride3rd).
 	- 20101021@Henry: Record execution time
+	- 20131108@Elodie: Splitting bodb02 into CustDB (Roll back updates on custinfo,customer table in main SP)  			
+	- 20150623@DanielC: Migrate custDB to new server DBCUST #36216
 
 Param's Explanation:
-â€¢ @ErrCode:
+• @ErrCode:
     = 0: Transaction recorded successfully.
     > 0: Specific Error.
     
-â€¢ @ErrMsg: Error description.
+• @ErrMsg: Error description.
 */
 
 BEGIN
@@ -491,7 +501,7 @@ END
 
 --Apply ExeReplication
 -- call Acc_ExecRep_00 two times to update coming bets that not replicated to subcriptions servers yet.
-EXEC dbo.Acc_ExecRep_00 
+EXEC DBTXN.bodb02.dbo.Acc_ExecRep_00 
 	@custid = 0,
 	@recommend = 0,
 	@recommend_old = 0,
@@ -502,9 +512,19 @@ EXEC dbo.Acc_ExecRep_00
 	@roleid = 3,
 	@ErrCode = @ErrCode OUTPUT,
 	@ErrMsg = @ErrMsg OUTPUT
-IF @ErrCode <>0 RETURN
+IF @ErrCode <> 0
+BEGIN			
+	-- 20130808@Elodie: Splitting DBTXN into DBCUST (Roll back updates on custinfo,customer table in main SP)  				
+	--ROLLBACK TRANSACTION MANUALLY
+    UPDATE customer WITH (ROWLOCK, UPDLOCK) SET srecommend = @srecommend_old
+	WHERE mrecommend = @mrecommend
+	
+	UPDATE custinfo WITH (ROWLOCK, UPDLOCK) SET srecommend = @srecommend_old
+	WHERE mrecommend = @mrecommend                     
+    RETURN
+END	
 
-EXEC dbo.Acc_ExecRep_00 
+EXEC DBTXN.bodb02.dbo.Acc_ExecRep_00 
 	@custid = 0,
 	@recommend = 0,
 	@recommend_old = 0,
@@ -515,12 +535,25 @@ EXEC dbo.Acc_ExecRep_00
 	@roleid = 3,
 	@ErrCode = @ErrCode OUTPUT,
 	@ErrMsg = @ErrMsg OUTPUT
-IF @ErrCode <>0 RETURN
+IF @ErrCode <> 0
+BEGIN			
+	-- 20130808@Elodie: Splitting DBTXN into DBCUST (Roll back updates on custinfo,customer table in main SP)  				
+	--ROLLBACK TRANSACTION MANUALLY
+    UPDATE customer WITH (ROWLOCK, UPDLOCK) SET srecommend = @srecommend_old
+	WHERE mrecommend = @mrecommend
+	
+	UPDATE custinfo WITH (ROWLOCK, UPDLOCK) SET srecommend = @srecommend_old
+	WHERE mrecommend = @mrecommend                     
+    RETURN
+END	
 
 --Check & update n4<=s1+m1+a1<=l4
-EXEC dbo.Acc_CustomerUpdMaster_MinMaxPositiontaking @mrecommend = @mrecommend, @srecommend = @srecommend
-EXEC dbo.Acc_CustomerUpdMasterFI_MinMaxPositiontaking @mrecommend = @mrecommend, @srecommend = @srecommend
-EXEC dbo.Acc_CustomerUpdMasterHR_MinMaxPositiontaking @mrecommend = @mrecommend, @srecommend = @srecommend
+---EXEC dbo.Acc_CustomerUpdMaster_MinMaxPositiontaking @mrecommend = @mrecommend, @srecommend = @srecommend
+EXEC dbo.Acc_CustSetting_04 @mrecommend = @mrecommend, @srecommend = @srecommend, @roleid = 3
+EXEC dbo.Acc_CustSetting3rd_04 @mrecommend = @mrecommend, @srecommend = @srecommend, @roleid = 3, @mode = 'number'
+--EXEC dbo.Acc_CustomerUpdMasterHR_MinMaxPositiontaking @mrecommend = @mrecommend, @srecommend = @srecommend
+EXEC dbo.[Acc_CustSetting3rd_04] @mrecommend = @mrecommend, @srecommend = @srecommend, @roleid = 3, @mode = 'horse'
+
 
 --when separate code we must update db07.bodb02.dbo.custsetting 
 update custsetting with (ROWLOCK, UPDLOCK) set sdiscount=adiscount 
@@ -551,9 +584,3 @@ EXEC DBLOG.bodb_CustomerLog.dbo.WriteLog_UserLog_RunSP
 	@duration = @duration
 
 END
-GO
-GRANT EXECUTE ON [dbo].[DBA_CustomerUpdMoveMaster] TO [bodbAdminNet]
-GO
-GRANT EXECUTE ON [dbo].[DBA_CustomerUpdMoveMaster] TO [vnteam]
-GO
-GRANT VIEW DEFINITION ON [dbo].[DBA_CustomerUpdMoveMaster] TO [vnteam]
