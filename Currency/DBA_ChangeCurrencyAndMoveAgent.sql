@@ -11,7 +11,7 @@ AS
 /*
 Created: 
 Task : Update currency and move to new master for Agent
-DB: DBTRANS.bodb02
+DB: DBCUST/CustDB
 Original:
 
 Revisions:
@@ -22,7 +22,8 @@ Revisions:
 	- 20101225@Henry: change bettype to new range
 	- 20110817@Henry: include Combination Mixed Parlay (bettype = 29)
 	- 20111006@Tom:	Add bet type of P2P: 1000
-	- 20120405@Hurri: Change bettype: 23101 -> 23102
+	- 20131108@Elodie: Splitting bodb02 into CustDB (Move update bettrans to DBA_ChangeCurrency_Bettrans)
+	- 20150622@Daniel: Separated custDB to server DBCUST
 	
 Param's Explanation: 
 
@@ -77,30 +78,33 @@ Update Customer with (updlock,rowlock)  set currency = @ExchangeID where recomme
 
 Update Custinfo with (updlock,rowlock) set currency = @ExchangeID where recommend = @CustID
 
-Update Bettrans with (updlock,rowlock) 
-	set CurrencyName = @NewCurrency,
-		currency = @ExchangeID,
-		actualrate = @actualrate,
-		virtualrate = @actualrate	
-where recommend = @CustID
-	--AND status= 'running'
-	AND actualrate is NOT NULL
-	and winlostdate >= convert(varchar(10),getdate(),112)
-	AND bettype NOT IN (71,73,31,32,33,41,42,43,51,52,53,54,55,56,61,62,63,64,65,66,1000, 23001, 23002, 23101, 23102)
+-- Move to bodb02.dbo.DBA_ChangeCurrency_Bettrans
+exec DBTXN.bodb02.dbo.DBA_ChangeCurrency_Bettrans @CustID = @CustID, @RoleID = 2, @actualrate = @actualrate, @ExchangeID = @ExchangeID, @NewCurrency = @NewCurrency
+
+--Update Bettrans with (updlock,rowlock) 
+--	set CurrencyName = @NewCurrency,
+--		currency = @ExchangeID,
+--		actualrate = @actualrate,
+--		virtualrate = @actualrate	
+--where recommend = @CustID
+--	--AND status= 'running'
+--	AND actualrate is NOT NULL
+--	and winlostdate >= convert(varchar(10),getdate(),112)
+--	AND bettype NOT IN (71,72,73,31,32,33,41,42,43,51,52,53,54,55,56,61,62,63,64,65,66,1000, 23001, 23002, 23101)
 
 
-Update Bettrans with (updlock,rowlock) 
-	set CurrencyName = @NewCurrency,
-		currency = @ExchangeID,
-		actualrate = @actualrate,
-		virtualrate = @actualrate	
-where recommend = @CustID
-	--AND status= 'running'
-	AND statusID = 0
-	AND actualrate is NOT NULL
-	and winlostdate < convert(varchar(10),getdate(),112)
-	AND bettype IN (9,29)
-	AND matchid IN (9,29)
+--Update Bettrans with (updlock,rowlock) 
+--	set CurrencyName = @NewCurrency,
+--		currency = @ExchangeID,
+--		actualrate = @actualrate,
+--		virtualrate = @actualrate	
+--where recommend = @CustID
+--	--AND status= 'running'
+--	AND statusID = 0
+--	AND actualrate is NOT NULL
+--	and winlostdate < convert(varchar(10),getdate(),112)
+--	AND bettype IN (9,29)
+--	AND matchid IN (9,29)
 
 
 --Move agent to new master
@@ -129,6 +133,4 @@ EXEC DBLOG.bodb_CustomerLog.dbo.WriteLog_UserLog_RunSP
 	@CustID = @CustID,
 	@ActionID = 805,
 	@TrackingValue = @LogSPData,
-	@duration = @duration	
-GO
-GRANT VIEW DEFINITION ON [DBA_ChangeCurrencyAndMoveAgent] TO [vnteam]
+	@duration = @duration

@@ -1,17 +1,27 @@
-﻿ALTER PROCEDURE DBA_BetInsMixParlay_VoidTickets
+USE [bodb02]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_BetInsMixParlay_VoidTickets]    Script Date: 06/22/2015 00:02:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/****** Object:  Stored Procedure dbo.DBA_BetInsMixParlay_VoidTickets    Script Date: 12/23/2013 5:15:28 PM ******/
+ALTER PROCEDURE [dbo].[DBA_BetInsMixParlay_VoidTickets]
 	@username varchar(50),
 	@transids varchar(8000)
 AS
 /*
 Created: 
 Task: Insert balanced transaction (dummy) to void duplicated mix parlay tickets of an account
-DB: DBTRANS.bodb02
+DB: DBTXN/bodb02
 Original: Dot_BetInsMixParlay
 
 Revisions:
     - 20110128@Daniel: ADD
+    - 20131108@Elodie: Splitting bodb02 into CustDB (call CustInfo, Exchange, CustSetting by link database)
+    - Daniel@20150622: Separated custDB to server DBCUST
 Param's Explanation:
-• @transids: transids of mix parlay tickets to void/balanced
+� @transids: transids of mix parlay tickets to void/balanced
 */
 DECLARE @Source tinyint
 
@@ -65,7 +75,7 @@ IF EXISTS(SELECT 1 FROM bettrans14 with (NOLOCK) WHERE transid IN(SELECT val FRO
 	SELECT @Source = 0
 
 IF (@Source IS NULL)
-	IF EXISTS(SELECT 1 FROM DB06.bodb_Archive.dbo.bettrans_bk with (NOLOCK) WHERE transid IN(SELECT val FROM dbo.strSplit(@transids, ',')))
+	IF EXISTS(SELECT 1 FROM DBARC.bodb_Archive.dbo.bettrans_bk with (NOLOCK) WHERE transid IN(SELECT val FROM dbo.strSplit(@transids, ',')))
 		SELECT @Source = 1
 
 IF(@Source IS NULL) RETURN
@@ -101,9 +111,9 @@ select
 	@currency = ci.currency,
 	@CurrencyName = exchange.currency
 from 
-	custinfo as ci with (nolock) 
-	inner join custsetting as cs with (nolock) on ci.custid = cs.custid and cs.bettype=9 and cs.sporttype=@SettingSporttype
-	inner join  exchange with (nolock) on ci.currency=exchange.exchangeid 
+	dbo.custinfo as ci with (nolock) 
+	INNER JOIN DBCUST.CustDB.dbo.CustSetting as cs with (nolock) on ci.custid = cs.custid and cs.bettype=9 and cs.sporttype=@SettingSporttype
+	inner join  dbo.exchange with (nolock) on ci.currency=exchange.exchangeid 
 where ci.username=@username
 
 IF (@Source = 0)
@@ -136,7 +146,7 @@ BEGIN
 		@comm = -SUM(comm),
 		@acomm = -SUM(acomm),
 		@scomm = -SUM(scomm)
-	from DB06.bodb_Archive.dbo.bettrans_bk with (nolock) 
+	from DBARC.bodb_Archive.dbo.bettrans_bk with (nolock) 
 	where transid IN(SELECT val FROM dbo.strSplit(@transids, ','))
 		and custid = @custid and bettype = 9 and matchid = 9
 END
@@ -169,14 +179,3 @@ select @custid, @SettingSporttype, 0.0, 0.0,
 	@playercomm, @comm, @acomm, @scomm, @transdesc
 
 select scope_identity() as TransID
-
-
-
-
-
-
-
-
-
-
-

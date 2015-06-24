@@ -7,12 +7,15 @@ AS
 	Created by: Elodie
 	Date: 2013-08-08
 	Task: Archive unused Accounts 
-	DB: DBTXN/CustDB
+	DB: DBCUST/CustDB
 	Original: Acc_ExecRep_01
 	Revision:
 		- 20131230@Elodie: Update credit = 0 when account is disabled, check correct server name 
 		- 201406180@Elodie: Remove setting of Keno
 		- 20150514@Elodie: Apply CustVirtualRate table
+	   	- 20150610@Daniel: 
+		   + Improve medthod check table existing in subscribers	
+		   + Separate custDB to new server DBCUST		
 
 	Param's Explanation:
 		@Type: 0-Stage 1 (enabled = 0); 1-Stage 2: 
@@ -21,7 +24,7 @@ AS
 BEGIN
 	IF @Type = 0 
 	BEGIN 
-		IF NOT EXISTS ( SELECT 1 FROM sys.tables WHERE Name='Custinfo') 
+		IF dbo.f_CheckRepTable('Custinfo') = 0
 			RETURN
 		ELSE 
 		BEGIN
@@ -35,7 +38,7 @@ BEGIN
 			END 
 		END 
 		
-		IF EXISTS (SELECT 1 FROM sys.tables WHERE name IN ('CustVirtualRate'))
+		IF dbo.f_CheckRepTable('CustVirtualRate') = 1
 		BEGIN
 			WHILE 1=1
 			BEGIN
@@ -50,11 +53,9 @@ BEGIN
 			END
 		END
 
-		IF EXISTS (	
-			SELECT COUNT(1) FROM sys.tables 
-			WHERE Name IN('CustSetting','CustSetting3rd')
-			HAVING COUNT(1) = 2 			
-		)
+	     IF (dbo.f_CheckRepTable('CustSetting') = 1 
+		  AND dbo.f_CheckRepTable('CustSetting3rd') = 1 
+	     )
 		BEGIN
 			WHILE(1=1)
 			BEGIN
@@ -75,10 +76,9 @@ BEGIN
 			END
 		END
 	
-		IF EXISTS ( SELECT COUNT(1) FROM sys.tables 
-					WHERE Name IN ( 'P2PGameSetting','P2PGroupComm')
-					HAVING COUNT(1) = 2 
-			 )
+	     IF (dbo.f_CheckRepTable('P2PGameSetting') = 1 
+		  AND dbo.f_CheckRepTable('P2PGroupComm') = 1 
+	     )
 		BEGIN			
 			WHILE(1=1)
 			BEGIN
@@ -103,10 +103,9 @@ BEGIN
 			END				
 		END		
 
-		IF EXISTS ( SELECT COUNT(1) FROM sys.tables 
-					WHERE Name IN ( 'CustSettingGame','CustGameType')
-					HAVING COUNT(1) = 2 
-			 )
+	     IF (dbo.f_CheckRepTable('CustSettingGame') = 1 
+		  AND dbo.f_CheckRepTable('CustGameType') = 1 
+	     )
 		BEGIN			
 			WHILE(1=1)
 			BEGIN
@@ -138,7 +137,7 @@ BEGIN
 	BEGIN
 		IF @@SERVERNAME = 'DBTRANS'
 		BEGIN
-			IF EXISTS ( SELECT 1 FROM bodb02.sys.tables WHERE Name='BalanceCredit') 		
+			IF dbo.f_CheckRepTable('BalanceCredit') = 1 				
 			BEGIN
 				WHILE (1=1)
 				BEGIN
@@ -152,7 +151,7 @@ BEGIN
 				END
 			END
 
-			IF EXISTS ( SELECT 1 FROM bodb02.sys.tables WHERE Name='BalanceDebit') 		
+			IF dbo.f_CheckRepTable('BalanceDebit') = 1 		
 			BEGIN
 				WHILE (1=1)
 				BEGIN
@@ -167,11 +166,9 @@ BEGIN
 			END
 		END
 				
-		IF EXISTS (
-			SELECT COUNT(1) FROM sys.tables 
-			WHERE Name IN ('Custinfo','Customer')
-			HAVING COUNT(1) = 2 
-		)
+	     IF (dbo.f_CheckRepTable('Custinfo') = 1 
+		  AND dbo.f_CheckRepTable('Customer') = 1 
+	     )
 		BEGIN
 			WHILE(1=1)
 			BEGIN

@@ -1,4 +1,13 @@
-﻿ALTER PROCEDURE [dbo].[DBA_InsertMemberBATicket]
+USE [bodb_Licensee]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_InsertMemberBATicket]    Script Date: 06/23/2015 00:23:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/****** Object:  Stored Procedure dbo.DBA_InsertMemberBATicket    Script Date: 12/24/2013 2:42:38 AM ******/
+/****** Object:  Stored Procedure dbo.DBA_InsertMemberBATicket    Script Date: 12/5/2013 10:52:37 AM ******/
+ALTER PROCEDURE [dbo].[DBA_InsertMemberBATicket]
 	@LicenseeID INT,
 	@username varchar(50)='',
 	@custid INT=0,
@@ -14,6 +23,8 @@ AS
 	
 	Revisions:
     - 20130123@Daniel: Change link server alias
+	- 20131113@winnie: Change link server to DBTXN.CustDB
+	- 20150622@Daniel: Separate custDB to new server DBCUST [Redmine:#36216] 
 	
 */
 DECLARE @recommend INT, @TransDate DATETIME
@@ -75,7 +86,7 @@ BEGIN
 		
 		IF (SELECT EnableBA FROM bodb_licensee.dbo.LicenseeBAConfig WITH (NOLOCK) WHERE LicenseeID = @LicenseeID) = 1
 		BEGIN
-			EXEC DBTXN.bodb02.dbo.[Lrf_CustomerUpdMemberBAStatus]
+			EXEC DBCUST.CustDB.dbo.[Lrf_CustomerUpdMemberBAStatus]
 				@LicenseeID=@LicenseeID,
 				@CustID = @CustID,
 				@ModifyBy = 1, --dbaThien
@@ -141,14 +152,7 @@ END
 
 IF @IsUpdatePT=1
 BEGIN
-	UPDATE DBTXN.bodb02.dbo.bettrans WITH (ROWLOCK,UPDLOCK)
-	SET tpositiontaking=0,
-		apositiontaking=0,
-		awinlost=0
-	WHERE 
-		custid = @CustID
-		and (bettype <31 or bettype between 121 AND 999)
-		and tpositiontaking<>0
+    EXEC DBTXN.bodb02.dbo.DBA_InsertMemberBATicket_UpdBetPT @custID = @custID
 END
 
 --bettrans
@@ -174,6 +178,3 @@ and bettype < 19000
 and (bettype <31 or bettype between 121 AND 999)
 and tpositiontaking = 0
 and isnull(ba.transid,0) = 0
-
-GO
-GRANT EXECUTE ON [dbo].[DBA_InsertMemberBATicket] TO [vnteam] 
