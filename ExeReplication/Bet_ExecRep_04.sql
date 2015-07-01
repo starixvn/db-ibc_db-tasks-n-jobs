@@ -1,4 +1,11 @@
-﻿ALTER PROCEDURE [dbo].[Bet_ExecRep_04] @Winlostdate DATETIME = NULL
+USE [bodb02]
+GO
+/****** Object:  StoredProcedure [dbo].[Bet_ExecRep_04]    Script Date: 06/23/2015 23:15:44 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[Bet_ExecRep_04] @Winlostdate DATETIME = NULL
 	,@Target VARCHAR(30) = 'DBTRANS' -- DBTRANS/REPLICATED
 AS
 /*
@@ -15,6 +22,7 @@ AS
  		- 20131108@Elodie: Splitting bodb02 into CustDB (call custinfo, exchange by link database)
  		- 20140124@Viet: fix splitting issue
 		- 20140701@Jamie: Get virtualmultiplier of bettrans 
+		- 20150624@Daniel: Improve method check table existing for exec rep sps
  		
  	Param's Explanation: 
  		@Winlostdate: the date that new rates are updated		
@@ -147,12 +155,12 @@ BEGIN
 	END
 	
 	IF @@SERVERNAME <> 'DBTRANS'
-	BEGIN
-		IF (
-			SELECT COUNT(1)
-			FROM sysobjects
-			WHERE NAME IN ('custinfo', 'bettrans', 'exchange') AND type = 'U'
-		) < 3 RETURN
+	BEGIN			
+		IF NOT(dbo.f_CheckRepTable('custinfo') = 1
+			 AND dbo.f_CheckRepTable('bettrans') = 1
+			 AND dbo.f_CheckRepTable('exchange') = 1
+			)
+		  RETURN             
 		
 		-- update for SB's tickets (using virtualrate)
 		PRINT '1.----------------'
@@ -271,5 +279,3 @@ BEGIN
 END
 
 
-GO
-GRANT VIEW DEFINITION ON [dbo].[Bet_ExecRep_04] TO [vnteam] AS [dbo]
