@@ -80,10 +80,10 @@ BEGIN
 	delete CustOverride3rd where custid IN (SELECT custID FROM @tmp_custID)
 	delete CustOverrideGame where custid IN (SELECT custID FROM @tmp_custID)
 	
-		
+	/*
 	delete P2PGameSetting where custid IN (SELECT custID FROM @tmp_custID)
 	delete P2PGroupComm where custid IN (SELECT custID FROM @tmp_custID)
-	
+	*/
 	EXEC DBTXN.bodb02.dbo.DBA_CustomerDel_Balance @custid = @custid, @roleid = @roleid, @ErrCode = @ErrCode OUTPUT, @ErrMsg = @ErrMsg OUTPUT
 	
 	delete custinfo where custid IN (SELECT custID FROM @tmp_custID)
@@ -98,7 +98,7 @@ END
 
 if @roleid = 3
 BEGIN
-	if exists (select 1 from bodb02.dbo.bettrans with (nolock) where mrecommend = @custid)
+	if exists (select 1 from DBTXN.bodb02.dbo.bettrans with (nolock) where mrecommend = @custid)
 	BEGIN
 		select @ErrMsg = N'Got bettrans already. Cannot delete.', @ErrCode = 100
 		RETURN
@@ -122,10 +122,10 @@ BEGIN
 	delete custoverride where custid IN (SELECT custID FROM @tmp_custID)
 	delete CustOverride3rd where custid IN (SELECT custID FROM @tmp_custID)
 	delete CustOverrideGame where custid IN (SELECT custID FROM @tmp_custID)
-	
+	/*
 	delete P2PGameSetting where custid IN (SELECT custID FROM @tmp_custID)
 	delete P2PGroupComm where custid IN (SELECT custID FROM @tmp_custID)
-	
+	*/
 	EXEC DBTXN.bodb02.dbo.DBA_CustomerDel_IncludeBet_Balance @custid = @custid, @roleid = @roleid, @ErrCode = @ErrCode OUTPUT, @ErrMsg = @ErrMsg OUTPUT
 
 	delete custinfo where custid IN (SELECT custID FROM @tmp_custID)
@@ -141,7 +141,7 @@ END
 if @roleid = 2
 BEGIN
 	
-	if exists (select 1 from bodb02.dbo.bettrans with (nolock) where recommend = @custid)
+	if exists (select 1 from DBTXN.bodb02.dbo.bettrans with (nolock) where recommend = @custid)
 	BEGIN
 		select @ErrMsg = N'Got bettrans already. Cannot delete.', @ErrCode = 100
 		RETURN
@@ -163,10 +163,10 @@ BEGIN
 	delete custoverride where custid IN (SELECT custID FROM @tmp_custID)
 	delete CustOverride3rd where custid IN (SELECT custID FROM @tmp_custID)
 	delete CustOverrideGame where custid IN (SELECT custID FROM @tmp_custID)
-	
+	/*
 	delete P2PGameSetting where custid IN (SELECT custID FROM @tmp_custID)
 	delete P2PGroupComm where custid IN (SELECT custID FROM @tmp_custID)
-	
+	*/
 	EXEC DBTXN.bodb02.dbo.DBA_CustomerDel_IncludeBet_Balance @custid = @custid, @roleid = @roleid, @ErrCode = @ErrCode OUTPUT, @ErrMsg = @ErrMsg OUTPUT
 
 	delete custinfo where custid IN (SELECT custID FROM @tmp_custID)
@@ -195,7 +195,7 @@ END
 
 if @roleid = 1
 BEGIN
-	if exists (select 1 from bodb02.dbo.bettrans with (nolock) where custid = @custid)
+	if exists (select 1 from DBTXN.bodb02.dbo.bettrans with (nolock) where custid = @custid)
 	BEGIN
 		select @ErrMsg = N'Got bettrans already. Cannot delete.', @ErrCode = 100
 		RETURN
@@ -206,10 +206,10 @@ BEGIN
 	delete custsettingGame where custid = @custid
 	delete Dep_custsetting where custid = @custid
 	delete Dep_custsetting3rd where custid = @custid
-	
+	/*
 	delete P2PGameSetting where custid = @custid
 	delete P2PGroupComm where custid = @custid
-	
+	*/
 	EXEC DBTXN.bodb02.dbo.DBA_CustomerDel_IncludeBet_Balance @custid = @custid, @roleid = @roleid, @ErrCode = @ErrCode OUTPUT, @ErrMsg = @ErrMsg OUTPUT
 
 	delete custinfo where custid = @custid
