@@ -1,8 +1,13 @@
 USE [bodb_licensee]
 GO
-
+/****** Object:  StoredProcedure [dbo].[DBA_Lrf_AddUserIntoLicensee]    Script Date: 08/07/2015 10:58:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/****** Object:  Stored Procedure dbo.DBA_Lrf_AddUserIntoLicensee    Script Date: 1/21/2015 5:15:12 PM ******/
 ALTER PROCEDURE [dbo].[DBA_Lrf_AddUserIntoLicensee]
-(	@LicenseeName  VARCHAR(10),
+(	@LicenseeName  VARCHAR(50),
 	@UserName	   VARCHAR(50),	
 	@isSpecialAdmin BIT =0
 )
@@ -29,7 +34,7 @@ BEGIN
 	WHERE LicenseeName = @LicenseeName
 	IF ISNULL(@LicenseeID,0)=0
 		BEGIN 
-			SELECT 'Wrong LicenseeName,please have a check and try again'
+			SELECT ISNULL(@LicenseeName,''),'Wrong LicenseeName,please have a check and try again'
 			RETURN;
 		END
 	ELSE 
