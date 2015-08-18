@@ -16,6 +16,7 @@ AS
 	   	- 20150610@Daniel: 
 		   + Improve medthod check table existing in subscribers	
 		   + Separate custDB to new server DBCUST		
+		- 20150808@Elodie: Balance Improvement [Redmine:#40125]	
 
 	Param's Explanation:
 		@Type: 0-Stage 1 (enabled = 0); 1-Stage 2: 
@@ -137,11 +138,38 @@ BEGIN
 	BEGIN
 		IF @@SERVERNAME = 'DBTRANS'
 		BEGIN
-			IF dbo.f_CheckRepTable('BalanceCredit') = 1 				
+			--IF dbo.f_CheckRepTable('BalanceCredit') = 1 				
+			--BEGIN
+			--	WHILE (1=1)
+			--	BEGIN
+			--		DELETE TOP(10000) bodb02.dbo.BalanceCredit WITH(ROWLOCK,UPDLOCK) 
+			--		WHERE custid IN (	SELECT custid 
+			--							FROM  Custinfo c WITH (NOLOCK)
+			--							WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+			--						)
+			--		IF @@ROWCOUNT < 10000
+			--			BREAK
+			--	END
+			--END
+
+			--IF dbo.f_CheckRepTable('BalanceDebit') = 1 		
+			--BEGIN
+			--	WHILE (1=1)
+			--	BEGIN
+			--		DELETE TOP(10000) bodb02.dbo.BalanceDebit WITH(ROWLOCK,UPDLOCK) 
+			--		WHERE custid IN (	SELECT custid 
+			--							FROM  Custinfo c WITH (NOLOCK)
+			--							WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+			--						)
+			--		IF @@ROWCOUNT < 10000
+			--			BREAK
+			--	END
+			--END
+			IF dbo.f_CheckRepTable('BalCreditSports') = 1 				
 			BEGIN
 				WHILE (1=1)
 				BEGIN
-					DELETE TOP(10000) bodb02.dbo.BalanceCredit WITH(ROWLOCK,UPDLOCK) 
+					DELETE TOP(10000) bodb02.dbo.BalCreditSports WITH(ROWLOCK,UPDLOCK) 
 					WHERE custid IN (	SELECT custid 
 										FROM  Custinfo c WITH (NOLOCK)
 										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
@@ -151,11 +179,92 @@ BEGIN
 				END
 			END
 
-			IF dbo.f_CheckRepTable('BalanceDebit') = 1 		
+			IF dbo.f_CheckRepTable('BalDebitSports') = 1 		
 			BEGIN
 				WHILE (1=1)
 				BEGIN
-					DELETE TOP(10000) bodb02.dbo.BalanceDebit WITH(ROWLOCK,UPDLOCK) 
+					DELETE TOP(10000) bodb02.dbo.BalDebitSports WITH(ROWLOCK,UPDLOCK) 
+					WHERE custid IN (	SELECT custid 
+										FROM  Custinfo c WITH (NOLOCK)
+										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+									)
+					IF @@ROWCOUNT < 10000
+						BREAK
+				END
+			END
+			IF dbo.f_CheckRepTable('BalCreditCasino') = 1 				
+			BEGIN
+				WHILE (1=1)
+				BEGIN
+					DELETE TOP(10000) bodb02.dbo.BalCreditCasino WITH(ROWLOCK,UPDLOCK) 
+					WHERE custid IN (	SELECT custid 
+										FROM  Custinfo c WITH (NOLOCK)
+										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+									)
+					IF @@ROWCOUNT < 10000
+						BREAK
+				END
+			END
+
+			IF dbo.f_CheckRepTable('BalDebitCasino') = 1 		
+			BEGIN
+				WHILE (1=1)
+				BEGIN
+					DELETE TOP(10000) bodb02.dbo.BalDebitCasino WITH(ROWLOCK,UPDLOCK) 
+					WHERE custid IN (	SELECT custid 
+										FROM  Custinfo c WITH (NOLOCK)
+										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+									)
+					IF @@ROWCOUNT < 10000
+						BREAK
+				END
+			END
+			IF dbo.f_CheckRepTable('BalCreditOthers') = 1 				
+			BEGIN
+				WHILE (1=1)
+				BEGIN
+					DELETE TOP(10000) bodb02.dbo.BalCreditOthers WITH(ROWLOCK,UPDLOCK) 
+					WHERE custid IN (	SELECT custid 
+										FROM  Custinfo c WITH (NOLOCK)
+										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+									)
+					IF @@ROWCOUNT < 10000
+						BREAK
+				END
+			END
+
+			IF dbo.f_CheckRepTable('BalDebitOthers') = 1 		
+			BEGIN
+				WHILE (1=1)
+				BEGIN
+					DELETE TOP(10000) bodb02.dbo.BalDebitOthers WITH(ROWLOCK,UPDLOCK) 
+					WHERE custid IN (	SELECT custid 
+										FROM  Custinfo c WITH (NOLOCK)
+										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+									)
+					IF @@ROWCOUNT < 10000
+						BREAK
+				END
+			END
+			IF dbo.f_CheckRepTable('BalCreditTransfer') = 1 				
+			BEGIN
+				WHILE (1=1)
+				BEGIN
+					DELETE TOP(10000) bodb02.dbo.BalCreditTransfer WITH(ROWLOCK,UPDLOCK) 
+					WHERE custid IN (	SELECT custid 
+										FROM  Custinfo c WITH (NOLOCK)
+										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
+									)
+					IF @@ROWCOUNT < 10000
+						BREAK
+				END
+			END
+
+			IF dbo.f_CheckRepTable('BalDebitTransfer') = 1 		
+			BEGIN
+				WHILE (1=1)
+				BEGIN
+					DELETE TOP(10000) bodb02.dbo.BalDebitTransfer WITH(ROWLOCK,UPDLOCK) 
 					WHERE custid IN (	SELECT custid 
 										FROM  Custinfo c WITH (NOLOCK)
 										WHERE	c.roleid = 1 AND c.recommend = @AgentID 
