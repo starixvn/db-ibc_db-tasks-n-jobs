@@ -1,4 +1,3 @@
-
 CREATE PROCEDURE dbo.DBA_CustSetting_DetectGroupedPTSetting
 (
 	@srecommend int = NULL, 
@@ -22,6 +21,8 @@ BEGIN
 	INTO #srecommend_temp
 	FROM custInfo WITH (NOLOCK)	
 	WHERE roleid = 1 AND (@srecommend IS NULL OR srecommend = @srecommend)
+		AND Currency = 20 -- UUS
+		
 	GROUP BY srecommend
 	HAVING COUNT(*) >= @Threshold_cnt
 	ORDER BY COUNT(*) DESC
