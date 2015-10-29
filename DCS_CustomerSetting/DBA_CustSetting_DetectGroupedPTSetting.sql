@@ -1,4 +1,4 @@
-CREATE PROCEDURE dbo.DBA_CustSetting_DetectGroupedPTSetting
+alter PROCEDURE dbo.DBA_CustSetting_DetectGroupedPTSetting
 (
 	@srecommend int = NULL, 
 	--@maxCustID int = 0,
@@ -9,7 +9,7 @@ AS
 	Created By: Helen
 	Created Date: 20151027
 	Description: Detect grouped PT setting before maintenance
-	
+	DB: DBCust/Custdb
 	Param explaination:
 		@Threshold_cnt: 100. It means that only detecting supers have more than 100 members
 	

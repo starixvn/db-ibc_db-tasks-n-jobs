@@ -8,7 +8,7 @@ AS
 	Created By: Helen
 	Created Date: 20151027
 	Description: Scripts to maintain PT Group
-	
+	DB: DBCust/CustDB
 	Param explaination:
 		@agentID: recommend
 		@Threshold: default 20, it means that it will be re-grouped 
