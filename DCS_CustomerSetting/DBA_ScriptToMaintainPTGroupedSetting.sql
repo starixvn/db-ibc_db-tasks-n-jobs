@@ -2,6 +2,7 @@
 	Created By: Helen
 	Created Date: 20151027
 	Description: Scripts to maintain PT Group
+	DB: DBCUST/CUSTDB
 
 */	
 
