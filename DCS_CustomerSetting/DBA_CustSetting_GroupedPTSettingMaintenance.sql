@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.DBA_CustSetting_GroupedPTSettingMaintenance
+ALTER PROCEDURE dbo.DBA_CustSetting_GroupedPTSettingMaintenance
 (
 	@agentID INT, @Threshold INT = 20
 )	
@@ -141,6 +141,13 @@ BEGIN
 				FROM CustPTSetting3rd_Member T1
 				WHERE T1.CustID = @repCustID
 
+				UPDATE CSM
+					SET IsGrouped = 1
+				FROM CustSettingMode3rd CSM
+					JOIN #tempdata TempD ON CSM.Custid = tempD.CustID
+					JOIN #tempGroup TempG ON TempG.cs2 = TempD.cs2 AND TempD.cs1 = TempG.cs1
+				WHERE CSM.IsGrouped = 0
+				 
 				-- Delete Individual setting for grouped players 
 				DELETE T
 				FROM CustPTSetting3rd_Member T
