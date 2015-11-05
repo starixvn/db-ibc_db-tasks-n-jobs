@@ -1,8 +1,13 @@
-USE CheckResultDB
- 
-GO 
+USE [CheckResultDB]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_CheckComm_Dep]    Script Date: 11/04/2015 22:46:16 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-ALTER PROCEDURE [dbo].DBA_CheckComm_Dep
+
+ALTER PROCEDURE [dbo].[DBA_CheckComm_Dep]
 (
 	@RestoreCustDB SmallDateTime,
 	@sporttype INT=NULL,
@@ -20,6 +25,7 @@ AS
 		-2014.04.22@Tom.Vo: 
 			1. Change source table : DBLIC.Licensee -> CheckLicenseeDB
 			2. Add parameter @RestoreCustDB
+		-2015.11.04@Francis: Add option maxdop to reduce CPU cost
 	Param's Explanation:
 		@sporttype: Product Id
 			-1 : All
@@ -151,8 +157,8 @@ SET NOCOUNT ON
 	SELECT LCC.[LicenseeID],LCC.[CustID],LCC.[SBComm],LCC.[RacingComm],LCC.[NGComm],LCC.[GroupCommID],LCC.[LCComm],LCC.[RNGComm]
 	FROM CheckLicenseeDB.dbo.[LicenseeCustComm] LCC WITH(NOLOCK)
 	WHERE LCC.InsertDate = @RestoreCustDB 
-		AND EXISTS(SELECT TOP 1 1 FROM #LicenseeBAConfig BAC WITH(NOLOCK)
-					WHERE LCC.[LicenseeID] = BAC.[LicenseeID])
+		--AND EXISTS(SELECT TOP 1 1 FROM #LicenseeBAConfig BAC WITH(NOLOCK)
+		--			WHERE LCC.[LicenseeID] = BAC.[LicenseeID])
 
 	IF OBJECT_ID('tempdb..#Member') IS NOT NULL 		DROP TABLE #Member
 	CREATE TABLE #Member (SiteID INT,CustID INT,RoleID INT,Ugroup VARCHAR(5),
@@ -232,6 +238,7 @@ SET NOCOUNT ON
 					me.roleid = 2
 					AND  cs.discount <> 0.00
 				)
+		OPTION (MAXDOP 4)
 	END
 
 	IF @sporttype IN (-1,151,161,162,180,202,251)--+ Racing(151) + NumberGame(161)+Live Casino(162)+ Virtual Sport(180) + Keno(202) + RnG Casino(251)
@@ -313,6 +320,7 @@ SET NOCOUNT ON
 						 END
 						 <> cs.playerdiscount
 			)
+		OPTION (MAXDOP 4)
 
 
 INSERT INTO #Member(SiteID,CustID,RoleID,Ugroup,BetType,SportID,CommP,CommA,CommM,CommS,Comm_P_Spec,Comm_SMA_Spec,IsBA)
@@ -375,6 +383,7 @@ INSERT INTO #Member(SiteID,CustID,RoleID,Ugroup,BetType,SportID,CommP,CommA,Comm
 							ELSE 0.00
 						 END
 			)
+		OPTION (MAXDOP 4)
 
 	END
 

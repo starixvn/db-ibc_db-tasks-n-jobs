@@ -1,8 +1,13 @@
-USE CheckResultDB
- 
-GO 
+USE [CheckResultDB]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_CheckPT_Dep]    Script Date: 11/04/2015 22:44:39 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-ALTER PROCEDURE [dbo].DBA_CheckPT_Dep
+
+ALTER PROCEDURE [dbo].[DBA_CheckPT_Dep]
 (
 	@RestoreCustDB SmallDateTime,
 	@sporttype INT=NULL,
@@ -20,6 +25,7 @@ AS
 		-2014.04.22@Tom.Vo: 
 			1. Change source table : DBLIC.Licensee -> CheckLicenseeDB
 			2. Add parameter @RestoreCustDB
+		-2015.11.04@Francis: Add option maxdop to reduce CPU cost
 	Param's Explanation:
 		@sporttype: Product Id
 			-1 : All
@@ -118,6 +124,7 @@ SET NOCOUNT ON
 							OR 
 						(BA.custid IS NOT NULL AND (cs.apositiontaking <> 0 OR cs.mpositiontaking <> 0))
 					)
+			OPTION (MAXDOP 4)
 	END
 	
 	IF @sporttype IN (-1,151,161,162,180,202,251)--+ Racing(151) + NumberGame(161)+Live Casino(162)+ Virtual Sport(180) + Keno(202) + RnG Casino(251)
@@ -152,6 +159,7 @@ SET NOCOUNT ON
 							)
 					AND co.roleid =1
 					AND (cs.apositiontaking + cs.mpositiontaking + cs.spositiontaking <> Sport_PT.PT)
+				OPTION (MAXDOP 4)
 
 			IF @sporttype IN (-1,202)--+Live Casino(162)+ Keno(202) 
 				INSERT INTO #Member (SiteID,CUSTID,SPORTID,BetType,PT,PT_spec)
@@ -177,7 +185,8 @@ SET NOCOUNT ON
 								)
 							)
 					AND co.roleid =1
-					AND (cs.apositiontaking + cs.mpositiontaking + cs.spositiontaking <> Sport_PT.PT) 
+					AND (cs.apositiontaking + cs.mpositiontaking + cs.spositiontaking <> Sport_PT.PT)
+				OPTION (MAXDOP 4)
 
 	END
 
@@ -199,7 +208,8 @@ SET NOCOUNT ON
 					ON cs.sporttype = Sport_PT.Sportid AND sup.SiteID = Sport_PT.SiteID
 			WHERE EXISTS(SELECT TOP 1 1 FROM CheckCustDB.dbo.CustInfo Info WITH(NOLOCK)
 							WHERE Info.CustID = co.CustID AND ISNULL(Info.[reject],0) = 0 AND ISNULL(Info.[closed],0)= 0)
-					AND cs.apositiontaking <> Sport_PT.PT 
+					AND cs.apositiontaking <> Sport_PT.PT
+			OPTION (MAXDOP 4)
 	
 	IF @sporttype IN (-1,151,161,162,180,202,251)--+ Racing(151) + NumberGame(161)+ Virtual Sport(180) + RnG Casino(251)
 	BEGIN
@@ -233,6 +243,7 @@ SET NOCOUNT ON
 								))
 						AND co.roleid =2 
 						AND cs.apositiontaking <> Sport_PT.PT
+				OPTION (MAXDOP 4)
 
 		IF @sporttype IN (-1,162,202)--+Live Casino(162)+ Keno(202) 
 			INSERT INTO #Licensee (SiteID,CUSTID,SPORTID,BetType,PT,PT_spec)
@@ -260,6 +271,7 @@ SET NOCOUNT ON
 							)
 						AND	co.roleid =2 
 						AND cs.apositiontaking <> Sport_PT.PT
+					OPTION (MAXDOP 4)
 	END	
 
 	INSERT INTO CheckResultDB.[dbo].[CheckPTResult_Deposit]

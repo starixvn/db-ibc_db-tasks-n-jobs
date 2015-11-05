@@ -1,8 +1,12 @@
-USE CheckResultDB
- 
-GO 
+USE [CheckResultDB]
+GO
+/****** Object:  StoredProcedure [dbo].[DBA_RPT_CheckSetting_Dep]    Script Date: 11/04/2015 22:32:35 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-ALTER PROCEDURE [dbo].DBA_RPT_CheckSetting_Dep
+ALTER PROCEDURE [dbo].[DBA_RPT_CheckSetting_Dep]
 	@iType INT=NULL,
 	@iQuery INT=NULL
 AS
@@ -13,7 +17,8 @@ AS
 	Original:
 
 	Revisions:
-		
+	- 20151104@Francis: exclude dummy accounts and 167 SiteID on Sportbook and NumberGame Product
+	
 	Param's Explanation:(5)
 		@iType : 
 			-1: Show all data
@@ -78,7 +83,7 @@ FROM (
 					,data.CommS	
 					,data.Comm_SMA_Spec	
 				FROM CheckResultDB.[dbo].CheckCommResult_Deposit data
-					LEFT JOIN bodb02.dbo.Site st WITH(NOLOCK)
+					LEFT JOIN CheckCustDB.dbo.Site st WITH(NOLOCK)
 						ON data.SITEID=st.siteid
 					LEFT JOIN CheckCustDB.dbo.Customer co WITH(NOLOCK)
 						ON data.Custid = co.Custid
@@ -89,6 +94,10 @@ FROM (
 													OR (@iType =1 AND co.Custid = @iQuery)
 													OR (@iType =2 AND co.recommend = @iQuery)
 													)
+					  AND co.username NOT LIKE '%Acc%' AND co.UserName NOT LIKE '%Transfer%' AND co.UserName NOT LIKE '%Charge%' 
+					  AND co.UserName NOT LIKE '%Bonus%' AND co.UserName NOT LIKE '%Withdrawal%'
+					  AND (data.SiteID != 167 OR data.SportType != 161)
+					  AND (data.SiteID != 167 OR (data.SportType > 99 AND data.SportType != 154))
 	) tblComm
 FULL OUTER JOIN
 	(
@@ -118,6 +127,10 @@ FULL OUTER JOIN
 													OR (@iType =0 AND data.SiteID = @iQuery)  
 													OR (@iType =1 AND co.Custid = @iQuery)
 													OR (@iType =2 AND co.recommend = @iQuery))
+				AND co.username NOT LIKE '%Acc%' AND co.UserName NOT LIKE '%Transfer%' AND co.UserName NOT LIKE '%Charge%' 
+				AND co.UserName NOT LIKE '%Bonus%' AND co.UserName NOT LIKE '%Withdrawal%'
+				AND (data.SiteID != 167 OR data.SportType != 161)
+				AND (data.SiteID != 167 OR (data.SportType > 99 AND data.SportType != 154))
 	)tblPT
 ON tblComm.SiteID = tblPT.SiteID
 	AND tblComm.SportName = tblPT.SportName
@@ -174,6 +187,10 @@ FROM (
 													OR (@iType =1 AND co.Custid = @iQuery)
 													OR (@iType =2 AND co.recommend = @iQuery)
 													)
+				AND co.username NOT LIKE '%Acc%' AND co.UserName NOT LIKE '%Transfer%' AND co.UserName NOT LIKE '%Charge%' 
+				AND co.UserName NOT LIKE '%Bonus%' AND co.UserName NOT LIKE '%Withdrawal%'
+				AND (data.SiteID != 167 OR data.SportType != 161)
+				AND (data.SiteID != 167 OR (data.SportType > 99 AND data.SportType != 154))
 	) tblPT
 FULL OUTER JOIN
 (
@@ -214,7 +231,14 @@ FULL OUTER JOIN
 													OR (@iType =1 AND co.Custid = @iQuery)
 													OR (@iType =2 AND co.recommend = @iQuery)
 													)
+				AND co.username NOT LIKE '%Acc%' AND co.UserName NOT LIKE '%Transfer%' AND co.UserName NOT LIKE '%Charge%' 
+				AND co.UserName NOT LIKE '%Bonus%' AND co.UserName NOT LIKE '%Withdrawal%'
+				AND (data.SiteID != 167 OR data.SportType != 161)
+				AND (data.SiteID != 167 OR (data.SportType > 99 AND data.SportType != 154))
 	)tblComm
 	ON tblComm.SiteID = tblPT.SiteID
 		AND tblComm.SportName = tblPT.SportName
 		AND tblComm.Custid = tblPT.Custid
+
+GO
+GRANT EXECUTE ON [dbo].[DBA_RPT_CheckSetting_Dep] TO [vnteam] AS [dbo]
