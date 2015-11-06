@@ -85,11 +85,11 @@ BEGIN
 	
 	*/
 	
-	--SELECT @GroupedPlayers_Current, @GroupedPlayers_New
-	
 	IF @GroupedPlayers_New > = @GroupedPlayers_Current
 	BEGIN
 			PRINT 'Starting regroup ....'
+			
+			TRUNCATE TABLE CustSettingMode3rd_buffer
 			
 			DECLARE @repCustID INT = (SELECT repCustID FROM #tempGroup)
 			IF EXISTS( SELECT 1 
@@ -102,57 +102,56 @@ BEGIN
 			BEGIN
 				PRINT 'Processing for old group and new group has the same setting for this agent ...'
 				-- Update isGroup for player
-				UPDATE T
-				SET IsGrouped = 1
+				INSERT INTO CustSettingMode3rd_buffer
+				SELECT T.CustID , 1
 				FROM CustSettingMode3rd T
 					JOIN #tempdata T1 ON T1.CustID = T.CustID  
 					JOIN #tempGroup T3 ON T3.CS1 = T1.CS1 AND T3.CS2=T1.CS2  
 				
-				-- Delete individual Setting
-				DELETE T
-				FROM CustPTSetting3rd_Member T
-					JOIN #tempdata T1 ON T1.CustID = T.CustID  
-					JOIN #tempGroup T3 ON T3.CS1 = T1.CS1 AND T3.CS2=T1.CS2  
-		
+				--*********************************** Run this SP at DBCust ***********
+				EXEC Acc_DynamicCustSetting3rd_09 @target = 'DBCUST'
+				
+				--***********************************STEP 6 : Run this SP at replicated DB ***********
+				EXEC Acc_DynamicCustSetting3rd_09 @target = 'REPLICATED'
+				
 			END			
 			ELSE
 			BEGIN
-				PRINT 'Starting creating new group for this agent ...'
-				-- Move Old PT Group to individual Setting
-				INSERT INTO CustPTSetting3rd_Member
-				SELECT  cs.custid,T1.SportType,T1.BetType,T1.IsLive,T1.SuperPT,T1.MasterPT,T1.AgentPT,T1.IsAutoMasterPT,T1.AutoMasterPT,T1.IsAutoSuperPT,T1.AutoSuperPT
-				FROM CustSettingMode3rd CS WITH (NOLOCK) 
-					JOIN #tmpMembers m ON CS.Custid = m.Custid
-					JOIN CustPTGroupSetting3rd_Member T1 WITH (NOLOCK) ON T1.AgentID = @AgentID
-				WHERE cs.IsGrouped = 1 
 				
-				UPDATE CSM
-					SET IsGrouped = 0
+				TRUNCATE TABLE CustPTGroupSetting3rd_Member_BUFFER
+				
+				-- Update IsGroup in case of Moving Old PT Group to individual Setting
+				INSERT INTO CustSettingMode3rd_buffer
+				SELECT CSM.CustID, 0
 				FROM CustSettingMode3rd CSM
 					JOIN #tmpMembers m ON m.CustID = CSM.custid
 				WHERE CSM.IsGrouped = 1 
 				
-				-- Create new Group PT for agent
-				DELETE FROM CustPTGroupSetting3rd_Member WHERE AgentID = @AgentID
+				-- Update IsGroup in case of Creating new Group PT for agent
+				INSERT INTO CustSettingMode3rd_buffer
+				SELECT CSM.Custid,	1
+				FROM CustSettingMode3rd CSM
+					JOIN #tempdata TempD ON CSM.Custid = tempD.CustID
+					JOIN #tempGroup TempG ON TempG.cs2 = TempD.cs2 AND TempD.cs1 = TempG.cs1
+				WHERE CSM.IsGrouped = 0
+				
+				INSERT INTO CustPTGroupSetting3rd_Member_BUFFER
+				SELECT T1.AgentID,T1.SportType,T1.BetType,T1.IsLive,T1.SuperPT,T1.MasterPT,T1.AgentPT,T1.IsAutoMasterPT,T1.AutoMasterPT,T1.IsAutoSuperPT,T1.AutoSuperPT 
+				FROM CustPTGroupSetting3rd_Member T1 WITH (NOLOCK) 
+				WHERE T1.AgentID = @AgentID
 				
 				INSERT INTO CustPTGroupSetting3rd_Member
 				SELECT @agentID AS agentID ,
 						T1.SportType,T1.BetType,T1.IsLive,T1.SuperPT,T1.MasterPT,T1.AgentPT,T1.IsAutoMasterPT,T1.AutoMasterPT,T1.IsAutoSuperPT,T1.AutoSuperPT
 				FROM CustPTSetting3rd_Member T1
 				WHERE T1.CustID = @repCustID
-
-				UPDATE CSM
-					SET IsGrouped = 1
-				FROM CustSettingMode3rd CSM
-					JOIN #tempdata TempD ON CSM.Custid = tempD.CustID
-					JOIN #tempGroup TempG ON TempG.cs2 = TempD.cs2 AND TempD.cs1 = TempG.cs1
-				WHERE CSM.IsGrouped = 0
-				 
-				-- Delete Individual setting for grouped players 
-				DELETE T
-				FROM CustPTSetting3rd_Member T
-					JOIN #tempdata TempD ON t.Custid = tempD.CustID
-					JOIN #tempGroup TempG ON TempG.cs2 = TempD.cs2 AND TempD.cs1 = TempG.cs1
+				
+				--*********************************** Run this SP at DBCust ***********
+				EXEC Acc_DynamicCustSetting3rd_09 @target = 'DBCUST'
+				
+				--***********************************STEP 6 : Run this SP at replicated DB ***********
+				EXEC Acc_DynamicCustSetting3rd_09 @target = 'REPLICATED'
+								
 			END	
 			
 	END
