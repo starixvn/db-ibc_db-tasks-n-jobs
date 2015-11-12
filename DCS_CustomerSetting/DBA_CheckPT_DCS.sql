@@ -23,7 +23,7 @@ AS
 		EXEC DBA_CheckPT_DCS @srecommend = 15		  
 	Step 2: SELECT * from CheckPTResult_Credit (NOLOCK) 
 	
-	DBCust.CustDB.dbo.[CustPTSetting3rd_Member]
+	CheckCustDB.dbo.[CustPTSetting3rd_Member]
 			[CustPTSetting3rd_Agent]
 			[CustPTGroupSetting3rd_Member]
 			[CustSettingMode3rd]
@@ -36,12 +36,12 @@ BEGIN
 	SET NOCOUNT ON   
 	
 	-- Starting DATA PREPARATION
-	TRUNCATE TABLE CheckPTResult_Credit
+	--TRUNCATE TABLE CheckPTResult_Credit
 	
 	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT
 	INTO #MemberPT
-	FROM DBCust.CustDB.dbo.CustInfo ci
-		JOIN DBCust.CustDB.dbo.CustPTSetting3rd_Member cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Member cs WITH (NOLOCK) ON ci.CustID = cs.CustID
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 1  
 			AND ci.Enabled = 1      
@@ -50,9 +50,9 @@ BEGIN
 	
 	INSERT INTO #MemberPT (CustID, recommend,mrecommend,srecommend,SportType,BetType,IsLive,SuperPT,MasterPT,AgentPT,IsAutoMasterPT,AutoMasterPT,IsAutoSuperPT,AutoSuperPT)
 	SELECT ci.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT
-	FROM DBCust.CustDB.dbo.CustInfo ci
-		INNER JOIN DBCust.CustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
-		INNER JOIN DBCust.CustDB.dbo.CustPTGroupSetting3rd_Member cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
+	FROM CheckCustDB.dbo.CustInfo ci
+		INNER JOIN CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
+		INNER JOIN CheckCustDB.dbo.CustPTGroupSetting3rd_Member cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 1  
 			AND ci.Enabled = 1      
@@ -61,8 +61,8 @@ BEGIN
 			
 	SELECT cs.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #AgentPT
-	FROM DBCust.CustDB.dbo.CustInfo ci
-		JOIN DBCust.CustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 2  
 			AND ci.Enabled = 1      
@@ -71,8 +71,8 @@ BEGIN
 			
 	SELECT cs.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #MasterPT
-	FROM DBCust.CustDB.dbo.CustInfo ci
-		JOIN DBCust.CustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 3  
 			AND ci.Enabled = 1      
@@ -81,8 +81,8 @@ BEGIN
 	
 	SELECT cs.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #SuperPT
-	FROM DBCust.CustDB.dbo.CustInfo ci
-		JOIN DBCust.CustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 4  
 			AND ci.Enabled = 1      
