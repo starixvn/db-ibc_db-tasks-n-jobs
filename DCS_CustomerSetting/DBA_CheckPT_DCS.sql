@@ -38,7 +38,7 @@ BEGIN
 	-- Starting DATA PREPARATION
 	--TRUNCATE TABLE CheckPTResult_Credit
 	
-	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT
+	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,0 IsGroup
 	INTO #MemberPT
 	FROM CheckCustDB.dbo.CustInfo ci
 		JOIN CheckCustDB.dbo.CustPTSetting3rd_Member cs WITH (NOLOCK) ON ci.CustID = cs.CustID
@@ -48,8 +48,8 @@ BEGIN
 			AND ci.Currency NOT IN (20,27,28)     
 			AND cs.SportType = CASE WHEN @SportType = 0 then cs.SportType  ELSE @SportType END 
 	
-	INSERT INTO #MemberPT (CustID, recommend,mrecommend,srecommend,SportType,BetType,IsLive,SuperPT,MasterPT,AgentPT,IsAutoMasterPT,AutoMasterPT,IsAutoSuperPT,AutoSuperPT)
-	SELECT ci.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT
+	INSERT INTO #MemberPT (CustID, recommend,mrecommend,srecommend,SportType,BetType,IsLive,SuperPT,MasterPT,AgentPT,IsAutoMasterPT,AutoMasterPT,IsAutoSuperPT,AutoSuperPT,IsGroup)
+	SELECT ci.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,1
 	FROM CheckCustDB.dbo.CustInfo ci
 		INNER JOIN CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
 		INNER JOIN CheckCustDB.dbo.CustPTGroupSetting3rd_Member cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
@@ -568,5 +568,40 @@ BEGIN
 
 	END   
 
-
+	---- 30. PT setting of member exists in both Individual and group PT   
+	IF @RuleId IN (0,30)  
+	BEGIN   
+		 PRINT ' 30. PT setting of member exists in both Individual and group PT'
+		 INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
+		 SELECT DISTINCT 30,NULL,NULL,M.CustID,M.CustID,NULL,NULL,NULL
+		 FROM #MemberPT M
+		 WHERE EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustPTSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.CustID = M.CustID)
+			   AND EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 1)	
+	END	
+	
+	---- 31. IsGrouped Flag = 0 but not exists in Individual PT table
+	IF @RuleId IN (0,31)  
+	BEGIN   
+		 PRINT '31. IsGrouped Flag = 0 but not exists in Individual PT table'
+		 INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
+		 SELECT DISTINCT 31,NULL,NULL,M.CustID,M.CustID,NULL,NULL,NULL
+		 FROM #MemberPT M
+		 WHERE EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 0)	
+			   AND NOT EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustPTSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.CustID = M.CustID)
+			   
+	END	 
+	
+	---- 32. IsGrouped Flag = 1 but not exists in Group PT table
+	IF @RuleId IN (0,32)  
+	BEGIN   
+		 PRINT '32. IsGrouped Flag = 1 but not exists in Group PT table'
+		 INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
+		 SELECT DISTINCT 32,NULL,NULL,M.CustID,M.CustID,NULL,NULL,NULL
+		 FROM #MemberPT M
+		 WHERE EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 1)	
+				AND NOT EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustPTGroupSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.AgentID = M.recommend)
+			   
+	END	   
+	
 END   
+ 	
