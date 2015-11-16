@@ -56,7 +56,7 @@ BEGIN
 	INSERT INTO #tempGroup(cs1, cs2, memberCNT, repCustID)  
 	SELECT cs1, cs2, memberCnt, repCustID  
 	FROM (  
-	SELECT cs1, cs2, rn = ROW_NUMBER() OVER (ORDER BY count(1) desc), memberCnt = count(1), repCustID = max(custid)  
+	SELECT cs1, cs2, rn = ROW_NUMBER() OVER (ORDER BY count(1) desc, max(custid) desc), memberCnt = count(1), repCustID = max(custid)  
 	FROM #tempdata  
 	GROUP BY cs1, cs2  
 	) x  
