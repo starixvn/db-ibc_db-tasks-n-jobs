@@ -175,7 +175,7 @@ BEGIN
 	BEGIN   
 		PRINT '6. S4 < US3   '
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
-		SELECT 6 as RuleId, cs.BetType, cs.SportType, cs.CustId, cs.CustId, cs.SuperPT , cs.AutoSuperPT, cs.IsLive  
+		SELECT 6 as RuleId, cs.BetType, cs.SportType, cs.CustId, cs.CustId, scs.SuperPT , cs.AutoSuperPT, cs.IsLive  
 		FROM #MasterPT cs 
 			JOIN #SuperPT scs ON scs.CustID = cs.srecommend  AND scs.SportType = cs.SportType  
 											AND scs.BetType = cs.BetType 
