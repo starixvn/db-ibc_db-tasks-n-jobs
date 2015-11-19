@@ -20,7 +20,7 @@ AS
 	SELECT * from CheckPTResult_Credit (NOLOCK)  
 	
 	Step 1: Detect wrong PT and save them into CheckPTResult_Credit
-		EXEC DBA_CheckPT_DCS @srecommend = 15		  
+		EXEC DBA_CheckPT_DCS_TESTING @srecommend = 15		  
 	Step 2: SELECT * from CheckPTResult_Credit (NOLOCK) 
 	
 	CheckCustDB.dbo.[CustPTSetting3rd_Member]
@@ -59,7 +59,7 @@ BEGIN
 			AND ci.Currency NOT IN (20,27,28)     
 			AND cs.SportType = CASE WHEN @SportType = 0 then cs.SportType  ELSE @SportType END 
 			
-	SELECT cs.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
+	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #AgentPT
 	FROM CheckCustDB.dbo.CustInfo ci
 		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
@@ -69,7 +69,7 @@ BEGIN
 			AND ci.Currency NOT IN (20,27,28)     
 			AND cs.SportType = CASE WHEN @SportType = 0 then cs.SportType  ELSE @SportType END 
 			
-	SELECT cs.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
+	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #MasterPT
 	FROM CheckCustDB.dbo.CustInfo ci
 		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
@@ -111,22 +111,22 @@ BEGIN
 		
 	END  
 
-	----2. S4 > 0.9 OR M4 > 0.9 OR A4 > 0.9   
+	----2. S4 > 90 OR M4 > 90 OR A4 > 90  
 	IF @RuleId IN (0,2)  
 	BEGIN  
-		PRINT '2. S4 > 0.9 OR M4 > 0.9 OR A4 > 0.9 '
+		PRINT '2. S4 > 90 OR M4 > 90 OR A4 > 90 '
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 2 AS RuleId, cs.BetType, cs.SportType, cs.CustId, cs.CustId,  
 			 CASE 
-				WHEN cs.SuperPT > 0.9 THEN cs.SuperPT
-				WHEN cs.MasterPT > 0.9 THEN cs.MasterPT
-				WHEN cs.AgentPT > 0.9 THEN cs.AgentPT   
-				ELSE 0.9   
+				WHEN cs.SuperPT > 90 THEN cs.SuperPT
+				WHEN cs.MasterPT > 90 THEN cs.MasterPT
+				WHEN cs.AgentPT > 90 THEN cs.AgentPT   
+				ELSE 90   
 			 END,  
-			 0.9,  
+			 90,  
 			 cs.Islive
 		FROM #SuperPT cs 
-		WHERE cs.SuperPT > 0.9 OR cs.MasterPT > 0.9 OR cs.AgentPT > 0.9 
+		WHERE cs.SuperPT > 90 OR cs.MasterPT > 90 OR cs.AgentPT > 90
 		
 	END  
 
@@ -176,8 +176,11 @@ BEGIN
 		PRINT '6. S4 < US3   '
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 6 as RuleId, cs.BetType, cs.SportType, cs.CustId, cs.CustId, cs.SuperPT , cs.AutoSuperPT, cs.IsLive  
-		FROM #MasterPT cs   
-		WHERE cs.SuperPT < cs.AutoSuperPT
+		FROM #MasterPT cs 
+			JOIN #SuperPT scs ON scs.CustID = cs.srecommend  AND scs.SportType = cs.SportType  
+											AND scs.BetType = cs.BetType 
+											AND scs.IsLive = cs.IsLive  
+		WHERE scs.SuperPT < cs.AutoSuperPT
 	END  
 	
 	----7. S4 < US1   
@@ -188,7 +191,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 7 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.SuperPT, cs.AutoSuperPT, scs.IsLive
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType  
 											AND scs.BetType = cs.BetType 
 											AND scs.IsLive = cs.IsLive 
 		WHERE scs.SuperPT < cs.AutoSuperPT
@@ -203,7 +206,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 8 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.SuperPT, cs.SuperPT + cs.MasterPT, scs.IsLive  
 		FROM #MasterPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType	AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive 
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType	AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive 
 		WHERE scs.SuperPT < cs.SuperPT + cs.MasterPT
 		
 	END  
@@ -216,7 +219,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 9 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.SuperPT, cs.SuperPT + cs.MasterPT + cs.AgentPT, scs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive 
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive 
 		WHERE scs.SuperPT < cs.SuperPT + cs.MasterPT + cs.AgentPT
 
 	END  
@@ -228,7 +231,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 10 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MinPT, cs.SuperPT + cs.MasterPT + cs.AgentPT, scs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MinPT > cs.SuperPT + cs.MasterPT + cs.AgentPT
 		  
 	END  
@@ -253,7 +256,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 12 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT, cs.MasterPT, scs.IsLive  
 		FROM #MasterPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive   
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive   
 		WHERE scs.MasterPT < cs.MasterPT
 		 
 	END  
@@ -265,7 +268,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 13 as RuleId, scs.BetType, scs.SportType, scs.CustId, cs.CustId, scs.MasterPT , cs.MinPT, scs.IsLive  
 		FROM #MasterPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive   
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive   
 		WHERE scs.MasterPT < cs.MinPT
 
 
@@ -278,7 +281,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 14 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT, cs.AutoMasterPT, scs.IsLive  
 		FROM #AgentPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive   
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive   
 		WHERE scs.MasterPT < cs.AutoMasterPT
 		
 	END  
@@ -291,7 +294,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 15 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT, cs.AutoMasterPT, scs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MasterPT < cs.AutoMasterPT
 			
 	END  
@@ -304,7 +307,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 16 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT , cs.MasterPT + cs.AgentPT, scs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND  scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MasterPT < cs.MasterPT + cs.AgentPT
 	END  
 
@@ -330,7 +333,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 18 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT, cs.MasterPT + cs.AgentPT, cs.IsLive  
 		FROM #AgentPT cs
-			INNER JOIN #MasterPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #MasterPT scs ON cs.mrecommend = scs.Custid AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MasterPT < cs.MasterPT + cs.AgentPT
 		
 	END  
@@ -343,7 +346,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 19 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT, cs.MasterPT + cs.AgentPT, cs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #MasterPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #MasterPT scs ON scs.CustID = cs.mrecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MasterPT < cs.MasterPT + cs.AgentPT
 		
 	END  
@@ -357,7 +360,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 20 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MinPT, cs.MasterPT + cs.AgentPT, cs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #MasterPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #MasterPT scs ON scs.CustID = cs.mrecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MinPT > cs.MasterPT + cs.AgentPT
 		
 	END    
@@ -371,7 +374,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLIve)  
 		SELECT 21 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.AgentPT, cs.AgentPT, scs.IsLive  
 		FROM #AgentPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.AgentPT < cs.AgentPT
 		  
 	END   
@@ -385,7 +388,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 22 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.AgentPT, cs.AgentPT, scs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.AgentPT < cs.AgentPT
 			
 	END   
@@ -410,7 +413,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 24 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MinPT, cs.AgentPT, cs.IsLive   
 		FROM #MemberPT cs
-			INNER JOIN #AgentPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #AgentPT scs ON scs.CustID = cs.recommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE   scs.MinPT > cs.AgentPT
 
 		  
@@ -425,7 +428,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 25 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MaxPT, cs.SuperPT + cs.MasterPT + cs.AgentPT, cs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MaxPT < cs.SuperPT + cs.MasterPT + cs.AgentPT
 
 		  
@@ -438,7 +441,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 26 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MaxPT, cs.MasterPT + cs.AgentPT, cs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #MasterPT scs ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #MasterPT scs ON scs.CustID = cs.mrecommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE scs.MaxPT < cs.MasterPT + cs.AgentPT
 		
 	END    
@@ -449,7 +452,7 @@ BEGIN
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 27 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MaxPT, cs.AgentPT, cs.IsLive  
 		FROM #MemberPT cs
-			INNER JOIN #AgentPT scs	ON scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
+			INNER JOIN #AgentPT scs	ON scs.CustID = cs.recommend AND scs.SportType = cs.SportType AND scs.BetType = cs.BetType AND scs.IsLive = cs.IsLive  
 		WHERE  scs.MaxPT < cs.AgentPT
 
 	END  
@@ -479,7 +482,7 @@ BEGIN
 				,cs.SuperPT  
 				,cs.IsLive  
 		FROM #MemberPT cs WITH (NOLOCK)  
-			INNER JOIN #SuperPT scs ON  scs.SportType = cs.SportType  AND scs.bettype = cs.bettype  AND scs.IsLive = cs.IsLive  
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType  AND scs.bettype = cs.bettype  AND scs.IsLive = cs.IsLive  
 			INNER JOIN #MasterPT mcs ON mcs.CustID = cs.mrecommend AND mcs.SportType = cs.SportType AND mcs.bettype = cs.bettype AND mcs.IsLive = cs.IsLive 							   
 		
 		WHERE (cs.IsAutoSuperPT = 1 OR mcs.IsAutoSuperPT = 1)  
@@ -490,6 +493,7 @@ BEGIN
 					  END)  
 					ELSE scs.SuperPT - cs.MasterPT - cs.AgentPT  
 				   END   
+				   
 	END   
 
 
@@ -541,7 +545,7 @@ BEGIN
 		,cs.MasterPT  
 		,cs.IsLive  
 		FROM #MemberPT cs 
-			INNER JOIN #SuperPT scs ON scs.SportType = cs.SportType AND scs.bettype = cs.bettype AND scs.IsLive = cs.IsLive
+			INNER JOIN #SuperPT scs ON scs.CustID = cs.srecommend AND scs.SportType = cs.SportType AND scs.bettype = cs.bettype AND scs.IsLive = cs.IsLive
 			INNER JOIN #MasterPT mcs ON mcs.CustId = cs.mrecommend AND mcs.SportType = cs.SportType AND mcs.bettype = cs.bettype AND mcs.IsLive = cs.IsLive
 			INNER JOIN #AgentPT acs ON acs.CustId = cs.recommend  AND acs.SportType = cs.SportType AND acs.bettype = cs.bettype AND acs.IsLive = cs.IsLive	   		     
 				   
