@@ -27,8 +27,6 @@ AS
 			[CustPTSetting3rd_Agent]
 			[CustPTGroupSetting3rd_Member]
 			[CustSettingMode3rd]
-
-				
 */  
 	
 BEGIN   
@@ -175,12 +173,13 @@ BEGIN
 	BEGIN   
 		PRINT '6. S4 < US3   '
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
-		SELECT 6 as RuleId, cs.BetType, cs.SportType, cs.CustId, cs.CustId, scs.SuperPT , cs.AutoSuperPT, cs.IsLive  
+		SELECT 6 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.SuperPT , cs.AutoSuperPT, cs.IsLive  
 		FROM #MasterPT cs 
 			JOIN #SuperPT scs ON scs.CustID = cs.srecommend  AND scs.SportType = cs.SportType  
 											AND scs.BetType = cs.BetType 
 											AND scs.IsLive = cs.IsLive  
 		WHERE scs.SuperPT < cs.AutoSuperPT
+		
 	END  
 	
 	----7. S4 < US1   
@@ -317,6 +316,7 @@ BEGIN
 	IF @RuleId IN (0,17)  
 	BEGIN  
 		PRINT '17. M3 < N3   '
+		
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 17 as RuleId, cs.BetType, cs.SportType, cs.CustId, cs.CustId, cs.MasterPT, cs.MinPT, cs.IsLive  
 		FROM #MasterPT cs
@@ -330,6 +330,7 @@ BEGIN
 	IF @RuleId IN (0,18)  
 	BEGIN   
 		PRINT '18. M3 < M2 + A2   '
+		
 		INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		SELECT 18 as RuleId, cs.BetType, cs.SportType, scs.CustId, cs.CustId, scs.MasterPT, cs.MasterPT + cs.AgentPT, cs.IsLive  
 		FROM #AgentPT cs
@@ -496,8 +497,8 @@ BEGIN
 				   
 	END   
 
-
-	---- 29. MIN (M4-A1, M3-A1,(IM1?UM1,UM2)) > M1   
+	
+	---- 29. MIN (M4-A1, M3-A1,(IM1?UM1,UM2)) > M1 
 	IF @RuleId IN (0,29)  
 	BEGIN   
 		PRINT '29. MIN (M4-A1, M3-A1,(IM1?UM1,UM2)) > M1   '
