@@ -112,7 +112,7 @@ BEGIN
 			  WHERE T1.agentID = @AgentID AND T2.CustID = @repCustID)  
 	BEGIN
 	  
-		PRINT 'Processing for old group and new group has the same setting for this agent ...'  
+		PRINT 'Starting: Processing for old group and new group has the same setting for this agent ...'  
 		-- Update isGroup for player  
 		UPDATE T  
 		SET IsGrouped = 1  
@@ -125,11 +125,11 @@ BEGIN
 		FROM CustPTSetting3rd_Member T  
 		 JOIN #tempdata T1 ON T1.CustID = T.CustID    
 		 JOIN #tempGroup T3 ON T3.CS1 = T1.CS1 AND T3.CS2=T1.CS2    
-
+		PRINT 'Finished: Processing for old group and new group has the same setting for this agent ...'  
 	END     
 	ELSE  
 	BEGIN  
-		PRINT 'Starting creating new group for this agent ...'  
+		PRINT 'Starting: Processing for creating new group for this agent ...'  
 		-- Move Old PT Group to individual Setting  
 		INSERT INTO CustPTSetting3rd_Member  
 		SELECT  cs.custid,T1.SportType,T1.BetType,T1.IsLive,T1.SuperPT,T1.MasterPT,T1.AgentPT,T1.IsAutoMasterPT,T1.AutoMasterPT,T1.IsAutoSuperPT,T1.AutoSuperPT  
@@ -165,6 +165,8 @@ BEGIN
 		FROM CustPTSetting3rd_Member T  
 		 JOIN #tempdata TempD ON t.Custid = tempD.CustID  
 		 JOIN #tempGroup TempG ON TempG.cs2 = TempD.cs2 AND TempD.cs1 = TempG.cs1  
+		
+		PRINT 'Finished: Processing for creating new group for this agent ...'   
 	END   
      
  END  
