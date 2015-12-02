@@ -40,6 +40,9 @@ BEGIN
 	INTO #tmpMembers  
 	FROM CustInfo WITH (NOLOCK) WHERE Recommend = @AgentID AND roleid = 1  
 
+	IF NOT EXISTS (SELECT 1 FROM #tmpMembers)
+		RETURN
+		
 	;WITH _s as (  
 	SELECT c.custid   
 		,rdSetting = CAST(DENSE_RANK() OVER(ORDER BY sporttype, bettype, islive, superPT, masterPT, agentPT, isAutoMasterPT, AutoMasterPT, isAutoSuperPT, AutoSuperPT) as INT)  
