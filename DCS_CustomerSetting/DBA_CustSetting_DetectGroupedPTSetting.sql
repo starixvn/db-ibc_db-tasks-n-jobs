@@ -2,7 +2,8 @@ alter PROCEDURE dbo.DBA_CustSetting_DetectGroupedPTSetting
 (
 	@srecommend int = NULL, 
 	--@maxCustID int = 0,
-	@Threshold_cnt INT = 100
+	@Threshold_cnt INT = 100,
+	@GetTop INT = 10
 )
 AS
 /*
@@ -21,7 +22,7 @@ BEGIN
 	INTO #srecommend_temp
 	FROM custInfo WITH (NOLOCK)	
 	WHERE roleid = 1 AND (@srecommend IS NULL OR srecommend = @srecommend)
-		AND Currency = 20 -- UUS
+		--AND Currency = 20 -- UUS
 		
 	GROUP BY srecommend
 	HAVING COUNT(*) >= @Threshold_cnt
@@ -55,7 +56,7 @@ BEGIN
 	WHERE rn = 1
 	
 	
-	SELECT TOP 10 tempG.srecommend, tempG.recommend,t.GroupedMemberCurrent_cnt , tempG.memberCNT AS GroupedMemberNew_Cnt
+	SELECT TOP (@GetTop) tempG.srecommend, tempG.recommend,t.GroupedMemberCurrent_cnt , tempG.memberCNT AS GroupedMemberNew_Cnt
 			,Diff_cnt= tempG.memberCNT - t.GroupedMemberCurrent_cnt 
 			--,Diff_percent = CAST(tempG.memberCNT AS FLOAT) / CAST(t.GroupedMemberCnt_Current AS FLOAT) * 100
 	FROM #tempGroup tempG
