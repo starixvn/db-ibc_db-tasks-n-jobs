@@ -182,20 +182,138 @@ END
 
 --STEP 1: Pick up the top agents that have most inefficient GROUP PT settings before re-grouping process
 EXEC DBA_CustSetting_DetectGroupedPTSetting @Threshold_cnt = 100
-
 /*
 Note: if only pick up agents under particular line, we can pass param @srecommend when executing sp
-
 for example:
 EXEC DBA_CustSetting_DetectGroupedPTSetting @srecommend = 2, @Threshold_cnt = 100
 */
+
 --STEP 2: Choose agents in the first step and run this command to start re-grouping process
+	--2.1: backup data before regrouping process RUN THIS SCRIPT AT DBCUST -----
 
---2.1: RUN THIS SCRIPT AT ALL REPLICATED SERVERS (06/DBTP) -----
-EXEC Acc_DynamicCustSetting3rd_09 @agentid = ???, @Threshold = 20, @target = 'REPLICATED'
+	TRUNCATE TABLE CustPTSetting3rd_Member_temp
+	TRUNCATE TABLE CustPTGroupSetting3rd_Member_TEMP
+	TRUNCATE TABLE CustSettingMode3rd_temp
 
---2.2 BEGIN STEP 3: RUN THIS SCRIPT AT DBCUST -----
-EXEC dbo.Acc_DynamicCustSetting3rd_09 @agentid = ???, @Threshold = 20, @target = 'DBCUST'
+	INSERT INTO CustPTSetting3rd_Member_temp
+	SELECT C.* 
+	FROM CustPTSetting3rd_Member C WITH (NOLOCK)
+		JOIN CustInfo CI WITH (NOLOCK) ON C.CustID = CI.CustID
+	WHERE CI.recommend = @agentID
+		
+	INSERT INTO CustPTGroupSetting3rd_Member_TEMP
+	SELECT * 
+	FROM CustPTGroupSetting3rd_Member WITH (NOLOCK)
+	WHERE agentID = @agentID
+
+	INSERT INTO CustSettingMode3rd_temp
+	SELECT c.* 
+	FROM CustSettingMode3rd C WITH (NOLOCK)
+		JOIN CustInfo CI WITH (NOLOCK) ON C.CustID = CI.CustID
+	WHERE CI.recommend = @agentID
+
+	--2.2 BEGIN STEP 3: RUN THIS SCRIPT AT DBCUST -----
+	EXEC dbo.Acc_DynamicCustSetting3rd_09 @agentid = ???, @Threshold = 20, @target = 'DBCUST'
+
+	--2.3: RUN THIS SCRIPT AT ALL REPLICATED SERVERS (06/DBTP) -----
+	EXEC Acc_DynamicCustSetting3rd_09 @agentid = ???, @Threshold = 20, @target = 'REPLICATED'
+
+-- End of STEP 2			
+
+-- STEP 3: CHECKING DATA: RUN THIS SCRIPT AT DBCUST -----
+	CREATE TABLE #PT_Old([CustID] [int] ,[SportType] [smallint] ,[BetType] [smallint] ,	[IsLive] [bit] ,
+						[SuperPT] [tinyint] ,[MasterPT] [tinyint] ,	[AgentPT] [tinyint] ,
+						[IsAutoMasterPT] [bit] ,[AutoMasterPT] [tinyint] ,	[IsAutoSuperPT] [bit] ,
+						[AutoSuperPT] [tinyint] ,IsOld BIT
+						PRIMARY KEY CLUSTERED 
+						(	[CustID] ASC,
+							[SportType] ASC,
+							[BetType] ASC,
+							[IsLive] ASC
+						)
+					)
+
+	CREATE TABLE #PT_New([CustID] [int] ,[SportType] [smallint] ,[BetType] [smallint] ,	[IsLive] [bit] ,
+					[SuperPT] [tinyint] ,[MasterPT] [tinyint] ,	[AgentPT] [tinyint] ,
+					[IsAutoMasterPT] [bit] ,[AutoMasterPT] [tinyint] ,	[IsAutoSuperPT] [bit] ,
+					[AutoSuperPT] [tinyint] ,IsOld BIT
+					PRIMARY KEY CLUSTERED 
+					(	[CustID] ASC,
+						[SportType] ASC,
+						[BetType] ASC,
+						[IsLive] ASC
+					)
+				)
+	CREATE TABLE #PT_Match (CustID INT)
+	
+	INSERT INTO #PT_Old			
+	SELECT CI.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,1 IsOld
+	FROM CustInfo ci WITH (NOLOCK)
+		JOIN CustPTSetting3rd_Member_TEMP cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+	WHERE ci.recommend = @agentID
+			AND ci.roleid = 1  
+			AND ci.Enabled = 1      
+			AND ci.Currency NOT IN (20,27,28)     
+	UNION ALL
+	SELECT ci.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,1 IsOld
+	FROM CustInfo ci (NOLOCK)
+		INNER JOIN CustSettingMode3rd_TEMP csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
+		INNER JOIN CustPTGroupSetting3rd_Member_TEMP cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
+	WHERE ci.recommend = @agentID
+			AND ci.roleid = 1  
+			AND ci.Enabled = 1      
+			AND ci.Currency NOT IN (20,27,28)  
 			
-
-
+	INSERT INTO #PT_New		
+	SELECT CI.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,0 IsOld
+	FROM CustInfo ci WITH (NOLOCK)
+		JOIN CustPTSetting3rd_Member cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+	WHERE ci.recommend = @agentID
+			AND ci.roleid = 1  
+			AND ci.Enabled = 1      
+			AND ci.Currency NOT IN (20,27,28)     
+	UNION ALL
+	SELECT ci.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,0 IsOld
+	FROM CustInfo ci (NOLOCK)
+		INNER JOIN CustSettingMode3rd csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
+		INNER JOIN CustPTGroupSetting3rd_Member cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
+	WHERE ci.recommend = @agentID
+			AND ci.roleid = 1  
+			AND ci.Enabled = 1      
+			AND ci.Currency NOT IN (20,27,28)  
+	
+	INSERT INTO #PT_Match
+	SELECT T1.CustID
+	FROM #PT_Old T1
+		INNER JOIN #PT_New T2 ON T1.CustID = T2.CustID AND T1.SportType = T2.SportType AND T1.BetType = T2.BetType AND T1.IsLive = T2.IsLive			
+						 AND  T1.SuperPT = T2.SuperPT AND T1.MasterPT = T2.MasterPT AND T1.AgentPT = T2.AgentPT  
+						 AND T1.IsAutoMasterPT = T2.IsAutoMasterPT AND T1.AutoMasterPT =  T2.AutoMasterPT   
+						 AND T1.IsAutoSuperPT = T2.IsAutoSuperPT AND T1.AutoSuperPT = T2.AutoSuperPT  
+	
+	DECLARE @Count_Match INT = 0
+	DECLARE @Count_Old INT = 0
+	
+	SET @Count_Match = (SELECT COUNT(*) FROM #PT_Match)
+	
+	SET @Count_Old = (SELECT COUNT(*) FROM #PT_Old)
+	
+	IF @Count_Old = @Count_Match
+		PRINT 'PT of members are correct after regrouping process'
+	ELSE
+	BEGIN
+		PRINT 'PT of members are NOT correct after regrouping process'
+		PRINT 'Starting: Collecting members have wrong PT after regrouping process'
+		SELECT T.*
+		FROM 
+		(	SELECT T1.*
+			FROM #PT_Old T1
+			WHERE NOT EXISTS (SELECT 1 FROM #PT_Match T WHERE T.CustID = T1.CustID)		
+			UNION ALL
+			SELECT T1.*
+			FROM #PT_New T1
+			WHERE NOT EXISTS (SELECT 1 FROM #PT_Match T WHERE T.CustID = T1.CustID)
+		) AS T
+		ORDER BY T.CustID, SportType,BetType,IsLive,IsOld
+		PRINT 'Finished: Collecting members have wrong PT after regrouping process'
+	END		
+-- END of step 3	
