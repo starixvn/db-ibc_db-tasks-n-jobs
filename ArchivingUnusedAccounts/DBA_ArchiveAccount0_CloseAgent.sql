@@ -13,6 +13,8 @@ Original SP:
 DB: DBTRANS/CustDB
 Revisions:    
 	- 20101021@Henry: Record execution time
+	- 20160104@Daniel: Add realtime check active trans
+	
 */
 
 declare @startRun datetime
@@ -43,6 +45,14 @@ END
 if @Closed = 1
 BEGIN
 	Select @ErrMsg = @AccName +':'+ 'This agent has already been CLOSED!!', @ErrCode = 101
+	print @ErrMsg
+	return
+END
+
+IF EXISTS(select 1 from DBTXN.bodb02.dbo.bettrans with (nolock) where recommend = @AgentID AND bettype <> 20000 and custid <> 0)
+BEGIN
+	Select @ErrMsg = @AccName +':'+ 'This agent just got active trans while processing!', @ErrCode = 101
+	INSERT INTO [dbo].[CustArc_NewActive] (AgentID) VALUES(@AgentID) 
 	print @ErrMsg
 	return
 END
