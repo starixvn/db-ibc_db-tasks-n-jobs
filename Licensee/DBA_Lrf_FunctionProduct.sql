@@ -1,10 +1,8 @@
-SET QUOTED_IDENTIFIER ON 
-GO
-SET ANSI_NULLS ON 
+USE [bodb_Licensee]
 GO
  
 
-CREATE   PROCEDURE [dbo].[DBA_Lrf_FunctionProduct]
+ALTER PROCEDURE [dbo].[DBA_Lrf_FunctionProduct]
 (
 	@ProductCode VARCHAR(100) = ''
 )
@@ -19,6 +17,9 @@ Revisions:
 	- 20150421@Jim: add more function Gold Deluxe
 	- 20150421@Jim: correct function product for Void Bridge
 	- 20150518@Jim: add more function for Void Bridge
+	- 20150727@Jim: exclude Casino Balance report when offer SB
+	- 20150825@Jim: exclude Microgaming Winloss report when offer SB 
+	- 20160128@Jim: add more Product MGCRNG
 Param's Explanation:
 		
 	
@@ -47,6 +48,7 @@ BEGIN
 									,60 -- AGENCY SYSTEM 
 									,61 -- Playtech Casino Win Loss
 									,62 -- AG Casino Win Loss
+									,63 -- AG Casino Balance
 									,6	-- ACCOUNT MANAGEMENT
 									,46	-- Manage Account
 									,47	-- Add New Account
@@ -56,6 +58,7 @@ BEGIN
 									,57	-- Assign Currency
 									,65 -- Gold Deluxe Winloss
 									,66 -- Void Bridge Winloss
+									,67 -- Microgaming Winloss
 									)	
 			UNION ALL 
 			SELECT	0 AS ProductId -- SB
@@ -312,20 +315,22 @@ BEGIN
 									,66 -- Vegas games Winloss
 									)
 		END	
-			
+	IF @ProductCode = 'MGCRNG'  
+		BEGIN 
+			INSERT INTO @tblFunctions (ProductId, FunctionId,TypeID)
+			SELECT	17 AS ProductId -- MGCRNG
+					,FunctionID  
+					,1 AS TypeId	 -- Lrf Function
+			FROM dbo.Functions WITH (NOLOCK)
+			WHERE FunctionId    IN (
+									 3  -- REPORTS
+									,68   -- CasinoProgressiveWins
+									)
+		END	
+		
 	SELECT DISTINCT ProductId, FunctionId,TypeID
 	FROM @tblFunctions ORDER BY ProductId,FunctionId  ASC
 		/*
 			EXEC DBA_FunctionProduct
 		*/
 END
-
-GO
-
-SET QUOTED_IDENTIFIER OFF 
-GO
-SET ANSI_NULLS ON 
-GO
-
-
-GO 
