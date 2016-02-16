@@ -13,7 +13,7 @@ Original SP:
 DB: DBTRANS/CustDB
 Revisions:    
 	- 20101021@Henry: Record execution time
-	- 20160104@Daniel: Add realtime check active trans
+	- 20160104@Daniel: Add realtime check for new members & active trans
 	
 */
 
@@ -49,7 +49,44 @@ BEGIN
 	return
 END
 
+
+--== Check new created members ==========================
+
+IF EXISTS(select 1 from dbo.customer with (nolock) where recommend = @AgentID AND roleid = 1 AND creatdate >= DATEADD(mm, -3, GETDATE()))
+BEGIN
+	Select @ErrMsg = @AccName +':'+ 'This agent just created new members while processing!', @ErrCode = 101
+	INSERT INTO [dbo].[CustArc_NewActive] (AgentID) VALUES(@AgentID) 
+	print @ErrMsg
+	return
+END
+
+--== Check new active trans ==========================
+
 IF EXISTS(select 1 from DBTXN.bodb02.dbo.bettrans with (nolock) where recommend = @AgentID AND bettype <> 20000 and custid <> 0)
+BEGIN
+	Select @ErrMsg = @AccName +':'+ 'This agent just got active trans while processing!', @ErrCode = 101
+	INSERT INTO [dbo].[CustArc_NewActive] (AgentID) VALUES(@AgentID) 
+	print @ErrMsg
+	return
+END
+
+IF EXISTS(select 1 from DBTXN.bodb02.dbo.translog with (nolock) where recommend = @AgentID)
+BEGIN
+	Select @ErrMsg = @AccName +':'+ 'This agent just got active trans while processing!', @ErrCode = 101
+	INSERT INTO [dbo].[CustArc_NewActive] (AgentID) VALUES(@AgentID) 
+	print @ErrMsg
+	return
+END
+
+IF EXISTS(select 1 from DBTXN.bodb02.dbo.bettransLC with (nolock) where recommend = @AgentID)
+BEGIN
+	Select @ErrMsg = @AccName +':'+ 'This agent just got active trans while processing!', @ErrCode = 101
+	INSERT INTO [dbo].[CustArc_NewActive] (AgentID) VALUES(@AgentID) 
+	print @ErrMsg
+	return
+END
+
+IF EXISTS(select 1 from DBTXN.bodb02.dbo.bettransRNG with (nolock) where recommend = @AgentID)
 BEGIN
 	Select @ErrMsg = @AccName +':'+ 'This agent just got active trans while processing!', @ErrCode = 101
 	INSERT INTO [dbo].[CustArc_NewActive] (AgentID) VALUES(@AgentID) 
