@@ -1,16 +1,18 @@
-USE [CheckCustDB]
+USE [CheckResultDB]
 GO
-/****** Object:  StoredProcedure [dbo].[DBA_CheckPT_DCS]    Script Date: 05/23/2016 02:35:49 ******/
+/****** Object:  StoredProcedure [dbo].[DBA_CheckPT_DCS]    Script Date: 05/24/2016 03:39:05 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 ALTER PROCEDURE [dbo].[DBA_CheckPT_DCS]  
 (	@srecommend INT   
 	,@SportType SMALLINT = 0  
 	,@RuleId SMALLINT = 0  
  )
+ with recompile 
 AS  
 /*  
 	Created: 20151103@Helen
@@ -31,7 +33,7 @@ AS
 		EXEC DBA_CheckPT_DCS_TESTING @srecommend = 15		  
 	Step 2: SELECT * from CheckPTResult_Credit (NOLOCK) 
 	
-	dbo.[CustPTSetting3rd_Member]
+	CheckCustDB.dbo.[CustPTSetting3rd_Member]
 			[CustPTSetting3rd_Agent]
 			[CustPTGroupSetting3rd_Member]
 			[CustSettingMode3rd]
@@ -46,10 +48,10 @@ BEGIN
 	
 	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,0 IsGroup
 	INTO #MemberPT
-	FROM dbo.CustInfo ci
-		JOIN dbo.CustPTSetting3rd_Member cs WITH (NOLOCK) ON ci.CustID = cs.CustID
-		INNER JOIN dbo.CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
-		LEFT JOIN dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Member cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+		INNER JOIN CheckCustDB.dbo.CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
+		LEFT JOIN CheckCustDB.dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 1  
 			AND ci.Enabled = 1      
@@ -63,11 +65,11 @@ BEGIN
 	
 	INSERT INTO #MemberPT (CustID, recommend,mrecommend,srecommend,SportType,BetType,IsLive,SuperPT,MasterPT,AgentPT,IsAutoMasterPT,AutoMasterPT,IsAutoSuperPT,AutoSuperPT,IsGroup)
 	SELECT ci.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,1
-	FROM dbo.CustInfo ci
-		INNER JOIN dbo.CustSettingMode3rd csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
-		INNER JOIN dbo.CustPTGroupSetting3rd_Member cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
-		INNER JOIN CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
-		LEFT JOIN dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
+	FROM CheckCustDB.dbo.CustInfo ci
+		INNER JOIN CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) ON ci.custid = csm.CustID AND csm.IsGrouped = 1
+		INNER JOIN CheckCustDB.dbo.CustPTGroupSetting3rd_Member cs WITH (NOLOCK) ON cs.AgentID = ci.recommend  
+		INNER JOIN CheckCustDB.dbo.CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
+		LEFT JOIN CheckCustDB.dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 1  
 			AND ci.Enabled = 1      
@@ -76,15 +78,15 @@ BEGIN
 			AND (
 					ISNULL(bitmapOrder,0) < 5 --From VB onwards
 					OR 
-					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1			 
+					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1		 
 				)
 			
 	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #AgentPT
-	FROM dbo.CustInfo ci
-		JOIN dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
-		INNER JOIN CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
-		LEFT JOIN dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+		INNER JOIN CheckCustDB.dbo.CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
+		LEFT JOIN CheckCustDB.dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 2  
 			AND ci.Enabled = 1      
@@ -93,15 +95,15 @@ BEGIN
 			AND (
 					ISNULL(bitmapOrder,0) < 5 --From VB onwards
 					OR 
-					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1			 
+					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1		 
 				)
 			
 	SELECT cs.CustID,ci.recommend,ci.mrecommend,ci.srecommend, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #MasterPT
-	FROM dbo.CustInfo ci
-		JOIN dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
-		INNER JOIN CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
-		LEFT JOIN dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+		INNER JOIN CheckCustDB.dbo.CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
+		LEFT JOIN CheckCustDB.dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 3  
 			AND ci.Enabled = 1      
@@ -110,15 +112,15 @@ BEGIN
 			AND (
 					ISNULL(bitmapOrder,0) < 5 --From VB onwards
 					OR 
-					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1			 
+					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1		 
 				)
 	
 	SELECT cs.CustID, cs.SportType,cs.BetType,cs.IsLive,cs.SuperPT,cs.MasterPT,cs.AgentPT,cs.IsAutoMasterPT,cs.AutoMasterPT,cs.IsAutoSuperPT,cs.AutoSuperPT,cs.MinPT,cs.MaxPT
 	INTO #SuperPT
-	FROM dbo.CustInfo ci
-		JOIN dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
-		INNER JOIN CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
-		LEFT JOIN dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
+	FROM CheckCustDB.dbo.CustInfo ci
+		JOIN CheckCustDB.dbo.CustPTSetting3rd_Agent cs WITH (NOLOCK) ON ci.CustID = cs.CustID
+		INNER JOIN CheckCustDB.dbo.CustProductStatus stt WITH (NOLOCK) ON ci.CustID = stt.CustID
+		LEFT JOIN CheckCustDB.dbo.ProductStatusProfile prf WITH(NOLOCK) ON prf.Sporttype = cs.sporttype
 	WHERE ci.srecommend = @srecommend  
 			AND ci.roleid = 4  
 			AND ci.Enabled = 1      
@@ -127,7 +129,7 @@ BEGIN
 			AND (
 					ISNULL(bitmapOrder,0) < 5 --From VB onwards
 					OR 
-					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1			 
+					CASE substring(bitmapHasSynced, 1+((bitmapOrder-1)/8), 1) & POWER(2, (bitmapOrder-1)%8) WHEN 0 THEN 0 ELSE 1 END = 1		 
 				)
 			
 	-- End of DATA PREPARATION				
@@ -623,8 +625,8 @@ BEGIN
 		 INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		 SELECT DISTINCT 30,NULL,NULL,M.CustID,M.CustID,NULL,NULL,NULL
 		 FROM #MemberPT M
-		 WHERE EXISTS (SELECT 1 FROM dbo.CustPTSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.CustID = M.CustID)
-			   AND EXISTS (SELECT 1 FROM dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 1)	
+		 WHERE EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustPTSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.CustID = M.CustID)
+			   AND EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 1)	
 	END	
 	
 	---- 31. IsGrouped Flag = 0 but not exists in Individual PT table
@@ -634,8 +636,8 @@ BEGIN
 		 INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		 SELECT DISTINCT 31,NULL,NULL,M.CustID,M.CustID,NULL,NULL,NULL
 		 FROM #MemberPT M
-		 WHERE EXISTS (SELECT 1 FROM dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 0)	
-			   AND NOT EXISTS (SELECT 1 FROM dbo.CustPTSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.CustID = M.CustID)
+		 WHERE EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 0)	
+			   AND NOT EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustPTSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.CustID = M.CustID)
 			   
 	END	 
 	
@@ -646,8 +648,8 @@ BEGIN
 		 INSERT INTO CheckPTResult_Credit (RuleId, BetType, SportType, CustIdA, CustIdB, ValueA, ValueB, IsLive)  
 		 SELECT DISTINCT 32,NULL,NULL,M.CustID,M.CustID,NULL,NULL,NULL
 		 FROM #MemberPT M
-		 WHERE EXISTS (SELECT 1 FROM dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 1)	
-				AND NOT EXISTS (SELECT 1 FROM dbo.CustPTGroupSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.AgentID = M.recommend)
+		 WHERE EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustSettingMode3rd csm WITH (NOLOCK) WHERE csm.CustID = M.CustID AND csm.IsGrouped = 1)	
+				AND NOT EXISTS (SELECT 1 FROM CheckCustDB.dbo.CustPTGroupSetting3rd_Member M1 WITH (NOLOCK) WHERE M1.AgentID = M.recommend)
 			   
 	END	   
 	
