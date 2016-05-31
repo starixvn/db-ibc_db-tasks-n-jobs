@@ -1,11 +1,13 @@
-USE [bodb_licensee]
+
+SET QUOTED_IDENTIFIER ON 
 GO
-/****** Object:  StoredProcedure [dbo].[DBA_Lrf_CreateNewLicensee]    Script Date: 05/04/2015 14:23:57 ******/
-SET ANSI_NULLS ON
+SET ANSI_NULLS ON 
 GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER PROCEDURE [dbo].[DBA_Lrf_CreateNewLicensee]
+
+/****** Object:  Stored Procedure dbo.DBA_Lrf_CreateNewLicensee    Script Date: 5/30/2016 11:30:31 AM ******/
+
+ 
+CREATE PROCEDURE [dbo].[DBA_Lrf_CreateNewLicensee]
 (
 	@LicenseeName   	VARCHAR(50)
 	,@SuperWildCard  	VARCHAR(100) = ''
@@ -18,6 +20,7 @@ ALTER PROCEDURE [dbo].[DBA_Lrf_CreateNewLicensee]
 	,@IsAllowMemberComm     BIT  = 0
 	,@IsAllowWLbyLeague		BIT	 = 0
 	,@IsDeposit				BIT	 = 0 
+	,@IsPullService			BIT  = 1
 	,@ErrCode 				INT  = 0  OUTPUT  
 	,@ErrMsg nvarchar(1000)      = '' OUTPUT 	
 )
@@ -43,6 +46,8 @@ Revisions:
 				   + hard-code to not grant Agency System Function for new licensee
 	+20140422@Jim: re-arrange data flow 			   
 	+20150504@Jim: correct function permission for GD,Void Bridge,AG,Playtech,
+	+20160224@Jim: add pull service option
+	+20160526@Jim: add more admin users
 Param's Explanation:
 	+ @IsSpecial: if 1 then update column Description to normal, or affiliate or banner depend on:
 		- username ending with 01: normal
@@ -159,10 +164,11 @@ END
 ---- OFFER PRODUCT3rd
 IF ISNULL(@ProductCode,'')<>''
 	BEGIN
-				EXEC DBA_Lrf_OfferProduct  
-			@ResellerID   = @ResellerID
-			,@LicenseeId  = @LicenseeId
-			,@ProductCode = @ProductCode
+			EXEC DBA_Lrf_OfferProduct  
+		@ResellerID   = @ResellerID
+		,@LicenseeId  = @LicenseeId
+		,@ProductCode = @ProductCode
+		,@IsPullService = @IsPullService
 	END
 
 IF @IsAllowMemberComm = 1
@@ -200,8 +206,16 @@ WHERE UserID IN
 	3652,--	pgmWilliam
 	3783,--	twLesley
 	3784,--	twKai
-	3834 --	dbaFrancis
+	3834, --dbaFrancis
+	8436,--	StarixQC2
+	8437,--	StarixQC3
+	8438,--	StarixQC4
+	8439,--	StarixQC5
+	8440,--	starix1
+	8441,--	starix2
+	8442 --	starix3
 	)
+ 
 
 
 INSERT INTO @CommonFunction (FunctionId,TypeId) --- will use ProductOffer
@@ -318,10 +332,6 @@ WHILE (@i <= @maxId)
 	SELECT DISTINCT LicenseeID,Currency CurrencyID
 	FROM dbo.LicenseeCust WITH (NOLOCK)
 	WHERE LicenseeID = @LicenseeID
-	EXCEPT
-	SELECT DISTINCT LicenseeID, CurrencyID
-	FROM dbo.CurrencyUser WITH (NOLOCK )
-	WHERE LicenseeID = @LicenseeID 
 	
 	INSERT INTO @usr (LicenseeID, UserID)
 	SELECT DISTINCT LicenseeID,UserID 
@@ -329,10 +339,13 @@ WHILE (@i <= @maxId)
 	WHERE LicenseeID = @LicenseeID
 	
 	INSERT INTO dbo.CurrencyUser(usrID,LicenseeID,CurrencyID,SystemID,isActive)
-	SELECT u.UserID,u.LicenseeID,c.CurrencyID,1,1 ---SystemID=1 is default for Lrf
+	SELECT u.UserID,@LicenseeID,c.CurrencyID,1,1 ---SystemID=1 is default for Lrf
 	FROM @usr u
 		INNER JOIN 	@Currency c ON u.LicenseeID = c.LicenseeID
-		
+	EXCEPT
+	SELECT usrID,LicenseeID,CurrencyID ,1,1
+	FROM dbo.CurrencyUser WITH (NOLOCK )
+	WHERE LicenseeID = @LicenseeID
 ------------------------------------------------------
 -- Map Licencee to LicenseeBAConfig
 ------------------------------------------------------
@@ -346,3 +359,14 @@ EXEC DBA_LicenseeBAConfig_Ins
     @OtherComm  = 0.005,
     @EnableBA   = 0,
     @UserID     = 862400 --pgmViet
+
+
+GO
+
+SET QUOTED_IDENTIFIER OFF 
+GO
+SET ANSI_NULLS ON 
+GO
+
+
+GO 

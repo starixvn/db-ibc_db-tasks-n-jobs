@@ -1,8 +1,5 @@
-USE [bodb_Licensee]
-GO
  
-
-ALTER PROCEDURE [dbo].[DBA_Lrf_FunctionProduct]
+CREATE PROCEDURE [dbo].[DBA_Lrf_FunctionProduct]
 (
 	@ProductCode VARCHAR(100) = ''
 )
@@ -59,6 +56,7 @@ BEGIN
 									,65 -- Gold Deluxe Winloss
 									,66 -- Void Bridge Winloss
 									,67 -- Microgaming Winloss
+									,68 -- Casino Progressive Wins
 									)	
 			UNION ALL 
 			SELECT	0 AS ProductId -- SB
@@ -334,3 +332,13 @@ BEGIN
 			EXEC DBA_FunctionProduct
 		*/
 END
+
+GO
+
+SET QUOTED_IDENTIFIER OFF 
+GO
+SET ANSI_NULLS ON 
+GO
+
+
+GO 
